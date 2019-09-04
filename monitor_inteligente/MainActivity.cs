@@ -56,7 +56,7 @@ namespace monitor_inteligente
         public Intent IntentService;
         public Timer timer;
         WifiInfo wifiinfo;
-        Task t;
+        //Task t;
 
         public async Task CleanMemory()
         {
@@ -232,62 +232,31 @@ namespace monitor_inteligente
                         //wake.Acquire();
                     }
                 }
-                //t = Task.Run(async () => await SetTime());
-                //t.Wait();
-                //await activewifi();
-                //await ReadFile();
             };
-            //t = Task.Run(async () => await SetTime());
-            //t.Wait();
-            //await activewifi();
-            //await ReadFile();
         }
 
-        public async Task activewifi()
-        {
-            while (cicleactive == true)
-            {
-                await Task.Delay(3000);
-                //Thread.Sleep(3000);
-                await CleanMemory();
-                wifiinfo = wifi.ConnectionInfo;
-                level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11);
-                if (level < 3)
-                {
-                    t.Dispose();
-                    cicleactive = false;
-                    Thread.Sleep(15000);
-                }
-            }
-        }
-
-        private async Task SetTime()
-        {
-            timer = new Timer(OnOff, 1, 240000, 240000);
-        }
-
-        private async void OnOff(object state)
-        {
-            pm = (PowerManager)GetSystemService(Context.PowerService);
-            wifiinfo = wifi.ConnectionInfo;
-            level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11);
-            if (level >= 3)
-            {
-                wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
-                wake.Acquire();
-                wake.Release();
-                intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-                StartActivity(intent);
-                wake = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
-                wake.Acquire();
-            }
-            else
-            {
-                wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
-                wake.Acquire();
-                wake.Release();
-            }
-        }
+        //private async void OnOff(object state)
+        //{
+        //    pm = (PowerManager)GetSystemService(Context.PowerService);
+        //    wifiinfo = wifi.ConnectionInfo;
+        //    level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11);
+        //    if (level >= 3)
+        //    {
+        //        wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
+        //        wake.Acquire();
+        //        wake.Release();
+        //        intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
+        //        StartActivity(intent);
+        //        wake = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
+        //        wake.Acquire();
+        //    }
+        //    else
+        //    {
+        //        wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
+        //        wake.Acquire();
+        //        wake.Release();
+        //    }
+        //}
 
         async Task Download()
         {
@@ -565,7 +534,7 @@ namespace monitor_inteligente
             Window.DecorView.SystemUiVisibility = (StatusBarVisibility)newUiOptions;
         }
 
-        private async void completado(object sender, AsyncCompletedEventArgs e)
+        private void completado(object sender, AsyncCompletedEventArgs e)
         {
             bytesIn = 0;
             percentage = 0;
@@ -607,7 +576,7 @@ namespace monitor_inteligente
             }
         }
 
-        private async void cargando(object sender, DownloadProgressChangedEventArgs e)
+        private void cargando(object sender, DownloadProgressChangedEventArgs e)
         {
             try
             {
@@ -1122,7 +1091,7 @@ namespace monitor_inteligente
             }
             if (lista.Count == 1)
             {
-                //no hagas nada
+                recorre = 0;
             }
             else if (recorre == lista.Count)
             {
@@ -1143,7 +1112,7 @@ namespace monitor_inteligente
                     try
                     {
                         video_main.SetVideoPath(ruta);
-                        video_main.RequestFocus();
+                        video_main.RequestFocus(); 
                         video_main.Start();
                     }
                     catch (Exception ex)
@@ -1409,7 +1378,7 @@ namespace monitor_inteligente
 
                                     if (ca == fecha_actual && (hora_actual >= hi_aux && hora_actual < hf_aux)) // si el archivo tiene la fecha actual y la hora actual esta dentro del rango que muestra ese archivo, entonces reproduce el video
                                     {
-                                        lista2.Clear();
+                                        lista2.Clear(); //aca
                                         id = string.Empty;
                                         hi = string.Empty;
                                         hf = string.Empty;
@@ -1565,7 +1534,7 @@ namespace monitor_inteligente
                                 ca = string.Empty;
                                 try
                                 {
-                                    await selectVideo();
+                                    await selectVideo(); //por aca
                                     nm = string.Empty;
                                 }
                                 catch (Exception ex)
@@ -1724,7 +1693,7 @@ namespace monitor_inteligente
                 }
                 if (lista2.Count == 1)
                 {
-                    //no hagas nada
+                    recorre = 0;
                 }
                 else if (recorre == lista2.Count)
                 {
@@ -1764,7 +1733,7 @@ namespace monitor_inteligente
         {
             public void OnPrepared(MediaPlayer mp)
             {
-                mp.Looping = false;
+                mp.Looping = true;
             }
         }
 
