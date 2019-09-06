@@ -25,6 +25,7 @@ using static Android.OS.PowerManager;
 using Java.Net;
 using System.Net.Sockets;
 using static Android.App.ActivityManager;
+using System.Timers;
 
 namespace monitor_inteligente
 {
@@ -44,6 +45,7 @@ namespace monitor_inteligente
         public List<string> lista = new List<string>();
         public int recorre = 0;
         ProgressDialog progreso;
+        public System.Timers.Timer WakeupScreen;
         private VideoView video_main;
         DateTime time, date;
         public VideoView Video_main { get => video_main; set => video_main = value; }
@@ -54,7 +56,6 @@ namespace monitor_inteligente
         public WakeLock wake;
         public Intent intent;
         public Intent IntentService;
-        public Timer timer;
         WifiInfo wifiinfo;
         //Task t;
 
@@ -90,7 +91,7 @@ namespace monitor_inteligente
             SetContentView(Resource.Layout.activity_main);
             SupportActionBar.SetDisplayShowTitleEnabled(false); //quita el titulo de action bar
             SupportActionBar.Hide(); //quita el action bar
-
+            InitializeTimer(); //timer
             Video_main = FindViewById<VideoView>(Resource.Id.video_main);
             progreso = new ProgressDialog(this);
             progreso.SetTitle("Descargando archivos...");
@@ -99,8 +100,8 @@ namespace monitor_inteligente
             progreso.SetCanceledOnTouchOutside(false);
             progreso.Max = 100;
             wifi = (WifiManager)GetSystemService(Android.Content.Context.WifiService); //obtiene los servicios de wifi
-
             await Folder();
+
             if (wifi.IsWifiEnabled)
             {
                 while (ctrlWifi)
@@ -114,21 +115,30 @@ namespace monitor_inteligente
                         await Download();
                         if (CrossConnectivity.Current.IsConnected) //verifica nuevamente si hay conexion con internet 
                         {
+                            if (!WakeupScreen.Enabled)
+                            {
+                                WakeupScreen.Start();
+                            }
+                            WakeupScreen.Start();
                             intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
                             StartActivity(intent);
                             //pm = (PowerManager)GetSystemService(Context.PowerService);
                             //wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
                             //wakeLock.Acquire();
-                            StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                            //StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                         }
                         else
                         {
+                            if (WakeupScreen.Enabled)
+                            {
+                                WakeupScreen.Stop();
+                            }
                             cicleactive = false;
                             pm = (PowerManager)GetSystemService(Context.PowerService);
                             wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
                             wakeLock.Acquire();
                             wakeLock.Release();
-                            StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                            //StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                             await ReadFile(); //AGREGADO
                         }
                     }
@@ -159,6 +169,10 @@ namespace monitor_inteligente
                         level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
                         if (level < 3)
                         {
+                            if (WakeupScreen.Enabled)
+                            {
+                                WakeupScreen.Stop();
+                            }
                             cicleactive = false;
                             offline = false;
                             level = 0;
@@ -168,7 +182,7 @@ namespace monitor_inteligente
                             wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
                             wakeLock.Acquire();
                             wakeLock.Release();
-                            StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                            //StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                             await ReadFile(); //AGREGADO
                         }
                         //pm = (PowerManager)GetSystemService(Context.PowerService);
@@ -188,15 +202,23 @@ namespace monitor_inteligente
                             level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
                             if (level >= 3)
                             {
+                                if (!WakeupScreen.Enabled)
+                                {
+                                    WakeupScreen.Start();
+                                }
                                 cicleactive = true;
                                 offline = true;
                                 await Download(); //cuando hay conexion a internet por wifi, inicia proceso para la descarga de archivos
                                 intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
                                 StartActivity(intent); //el dispositivo entra a hibernar
-                                StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                                //StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                             }
                             else
                             {
+                                if (WakeupScreen.Enabled)
+                                {
+                                    WakeupScreen.Stop();
+                                }
                                 cicleactive = false;
                                 offline = false;
                                 ctrlWifi = false;
@@ -204,7 +226,7 @@ namespace monitor_inteligente
                                 wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
                                 wake.Acquire(); //el dispositivo sale de hibernar
                                 wake.Release();
-                                StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                                //StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                                 await ReadFile(); //AGREGADO
                             }
                         }
@@ -216,6 +238,10 @@ namespace monitor_inteligente
                         level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
                         if (level < 3)
                         {
+                            if (WakeupScreen.Enabled)
+                            {
+                                WakeupScreen.Stop();
+                            }
                             cicleactive = false;
                             offline = false;
                             level = 0;
@@ -224,7 +250,7 @@ namespace monitor_inteligente
                             wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
                             wakeLock.Acquire();
                             wakeLock.Release();
-                            StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                            //StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                             await ReadFile(); //AGREGADO
                         }
                         //pm = (PowerManager)GetSystemService(Context.PowerService);
@@ -233,6 +259,27 @@ namespace monitor_inteligente
                     }
                 }
             };
+        }
+
+        private void InitializeTimer()
+        {
+            WakeupScreen = new System.Timers.Timer();
+            WakeupScreen.Interval = 60000;//900000; //15 min
+            WakeupScreen.Enabled = true;
+            WakeupScreen.Elapsed += OnOff;
+        }
+
+        private void OnOff(object sender, ElapsedEventArgs e)
+        {
+            pm = (PowerManager)GetSystemService(Context.PowerService);
+            wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
+            wakeLock.Acquire();
+            wakeLock.Release();
+            Thread.Sleep(2000);
+            intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
+            StartActivity(intent); //el dispositivo entra a hibernar
+
+            //StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
         }
 
         //private async void OnOff(object state)
@@ -621,7 +668,7 @@ namespace monitor_inteligente
                 rompe = 0;
                 date = DateTime.Today;
                 dia = date.Day.ToString();
-                mes = date.Month.ToString("d2");
+                mes = date.Month.ToString();
                 año = date.Year.ToString();
                 fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
                 hour_enabled = true;
@@ -704,7 +751,7 @@ namespace monitor_inteligente
                                 {
                                     if (isSaving == true)
                                     {
-                                        if (line[i] == ':')
+                                        if (line[i] == '<')
                                         {
                                             isSaving = false;
                                         }
@@ -725,7 +772,7 @@ namespace monitor_inteligente
                                 {
                                     if (isSaving == true)
                                     {
-                                        if (line[i] == ':')
+                                        if (line[i] == '<')
                                         {
                                             isSaving = false;
                                         }
@@ -907,7 +954,7 @@ namespace monitor_inteligente
                                                 }
                                             }
                                         }
-                                        if (/*ca == fecha_actual &&*/mi != string.Empty)
+                                        if (/*ca == fecha_actual &&*/ mi != string.Empty)
                                         {
                                             lista.Add(nm);
                                             mi = string.Empty;
@@ -1215,7 +1262,7 @@ namespace monitor_inteligente
                 {
                     date = DateTime.Today;
                     dia = date.Day.ToString();
-                    mes = date.Month.ToString("d2");
+                    mes = date.Month.ToString();
                     año = date.Year.ToString();
                     fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
                     hour_enabled = true;
@@ -1298,7 +1345,7 @@ namespace monitor_inteligente
                                     {
                                         if (isSaving == true)
                                         {
-                                            if (line[i] == ':')
+                                            if (line[i] == '<')
                                             {
                                                 isSaving = false;
                                             }
@@ -1320,7 +1367,7 @@ namespace monitor_inteligente
                                     {
                                         if (isSaving == true)
                                         {
-                                            if (line[i] == ':')
+                                            if (line[i] == '<')
                                             {
                                                 isSaving = false;
                                             }
@@ -1503,7 +1550,7 @@ namespace monitor_inteligente
                                                     }
                                                 }
                                             }
-                                            if (/*ca == fecha_actual && */mi != string.Empty)
+                                            if (/*ca == fecha_actual &&*/ mi != string.Empty)
                                             {
                                                 lista2.Add(nm);
                                                 mi = string.Empty;
@@ -1542,7 +1589,7 @@ namespace monitor_inteligente
                                     //no hagas nada
                                 }
                             }
-                            else
+                            else //cuando no se encuentre un video con la fecha actual
                             {
                                 using (var lines = new StreamReader(ruta2))
                                 {
@@ -1817,43 +1864,43 @@ namespace monitor_inteligente
             base.OnResume();
             try
             {
-                var combina = Path.Combine(path_arch, "historial.txt");
-                if (!Directory.Exists(path_arch))
-                {
-                    Directory.CreateDirectory(path_arch);
-                }
-                if (!File.Exists(combina))
-                {
-                    File.WriteAllText(combina, string.Empty);
-                }
-                date = DateTime.Today;
-                dia = date.Day.ToString();
-                mes = date.Month.ToString();
-                año = date.Year.ToString();
-                fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
+                //var combina = Path.Combine(path_arch, "historial.txt");
+                //if (!Directory.Exists(path_arch))
+                //{
+                //    Directory.CreateDirectory(path_arch);
+                //}
+                //if (!File.Exists(combina))
+                //{
+                //    File.WriteAllText(combina, string.Empty);
+                //}
+                //date = DateTime.Today;
+                //dia = date.Day.ToString();
+                //mes = date.Month.ToString();
+                //año = date.Year.ToString();
+                //fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
 
-                time = DateTime.Now.ToLocalTime();
-                hora = time.Hour.ToString();
-                min = time.Minute.ToString();
-                string tiempo = hora + ":" + min;
-                if (!File.Exists(Path.Combine(combina)))
-                {
-                    using (var escribe = new StreamWriter(combina, true))
-                    {
-                        escribe.WriteLine("se reanuda");
-                        escribe.WriteLine(fecha_actual);
-                        escribe.WriteLine(tiempo);
-                    }
-                }
-                else
-                {
-                    using (var escribe = new StreamWriter(combina, true))
-                    {
-                        escribe.WriteLine("se reanuda");
-                        escribe.WriteLine(fecha_actual);
-                        escribe.WriteLine(tiempo);
-                    }
-                }
+                //time = DateTime.Now.ToLocalTime();
+                //hora = time.Hour.ToString();
+                //min = time.Minute.ToString();
+                //string tiempo = hora + ":" + min;
+                //if (!File.Exists(Path.Combine(combina)))
+                //{
+                //    using (var escribe = new StreamWriter(combina, true))
+                //    {
+                //        escribe.WriteLine("se reanuda");
+                //        escribe.WriteLine(fecha_actual);
+                //        escribe.WriteLine(tiempo);
+                //    }
+                //}
+                //else
+                //{
+                //    using (var escribe = new StreamWriter(combina, true))
+                //    {
+                //        escribe.WriteLine("se reanuda");
+                //        escribe.WriteLine(fecha_actual);
+                //        escribe.WriteLine(tiempo);
+                //    }
+                //}
 
                 bool isInBackground;
                 RunningAppProcessInfo myProcess = new RunningAppProcessInfo();
@@ -1869,21 +1916,21 @@ namespace monitor_inteligente
             }
             catch(Exception)
             {
-                var combina = Path.Combine(path_arch, "historial.txt");
-                if (!File.Exists(Path.Combine(combina)))
-                {
-                    using (var escribe = new StreamWriter(combina, true))
-                    {
-                        escribe.WriteLine("excepcion OnResume");
-                    }
-                }
-                else
-                {
-                    using (var escribe = new StreamWriter(combina, true))
-                    {
-                        escribe.WriteLine("excepcion OnResume");
-                    }
-                }
+                //var combina = Path.Combine(path_arch, "historial.txt");
+                //if (!File.Exists(Path.Combine(combina)))
+                //{
+                //    using (var escribe = new StreamWriter(combina, true))
+                //    {
+                //        escribe.WriteLine("excepcion OnResume");
+                //    }
+                //}
+                //else
+                //{
+                //    using (var escribe = new StreamWriter(combina, true))
+                //    {
+                //        escribe.WriteLine("excepcion OnResume");
+                //    }
+                //}
             }
         }
     }

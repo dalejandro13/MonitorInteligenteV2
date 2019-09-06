@@ -40,45 +40,45 @@ namespace monitor_inteligente
         {
             try
             {
-                var combina = Path.Combine(path_archivos, "historial.txt");
-                if (!Directory.Exists(path_archivos))
-                {
-                    Directory.CreateDirectory(path_archivos);
-                }
-                if (!File.Exists(combina))
-                {
-                    File.WriteAllText(combina, string.Empty);
-                }
+                //var combina = Path.Combine(path_archivos, "historial.txt");
+                //if (!Directory.Exists(path_archivos))
+                //{
+                //    Directory.CreateDirectory(path_archivos);
+                //}
+                //if (!File.Exists(combina))
+                //{
+                //    File.WriteAllText(combina, string.Empty);
+                //}
 
-                date = DateTime.Today;
-                dia = date.Day.ToString();
-                mes = date.Month.ToString();
-                año = date.Year.ToString();
-                fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
+                //date = DateTime.Today;
+                //dia = date.Day.ToString();
+                //mes = date.Month.ToString();
+                //año = date.Year.ToString();
+                //fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
 
-                time = DateTime.Now.ToLocalTime();
-                hora = time.Hour.ToString();
-                min = time.Minute.ToString();
-                string tiempo = hora + ":" + min;
+                //time = DateTime.Now.ToLocalTime();
+                //hora = time.Hour.ToString();
+                //min = time.Minute.ToString();
+                //string tiempo = hora + ":" + min;
 
-                if (!File.Exists(Path.Combine(combina)))
-                {
-                    using (var escribe = new StreamWriter(combina, true))
-                    {
-                        escribe.WriteLine("inicio de servicio");
-                        escribe.WriteLine(fecha_actual);
-                        escribe.WriteLine(tiempo);
-                    }
-                }
-                else
-                {
-                    using (var escribe = new StreamWriter(combina, true))
-                    {
-                        escribe.WriteLine("inicio de servicio");
-                        escribe.WriteLine(fecha_actual);
-                        escribe.WriteLine(tiempo);
-                    }
-                }
+                //if (!File.Exists(Path.Combine(combina)))
+                //{
+                //    using (var escribe = new StreamWriter(combina, true))
+                //    {
+                //        escribe.WriteLine("inicio de servicio");
+                //        escribe.WriteLine(fecha_actual);
+                //        escribe.WriteLine(tiempo);
+                //    }
+                //}
+                //else
+                //{
+                //    using (var escribe = new StreamWriter(combina, true))
+                //    {
+                //        escribe.WriteLine("inicio de servicio");
+                //        escribe.WriteLine(fecha_actual);
+                //        escribe.WriteLine(tiempo);
+                //    }
+                //}
 
                 WifiManager wm = (WifiManager)GetSystemService(WifiService);
                 wifiLock = wm.CreateWifiLock(WifiMode.FullHighPerf, "keep wifi on");
@@ -104,36 +104,36 @@ namespace monitor_inteligente
             }
             catch (Exception)
             {
-                var combina = Path.Combine(path_archivos, "historial.txt");
-                date = DateTime.Today;
-                dia = date.Day.ToString();
-                mes = date.Month.ToString("d2");
-                año = date.Year.ToString();
-                fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
+                //var combina = Path.Combine(path_archivos, "historial.txt");
+                //date = DateTime.Today;
+                //dia = date.Day.ToString();
+                //mes = date.Month.ToString("d2");
+                //año = date.Year.ToString();
+                //fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
 
-                time = DateTime.Now.ToLocalTime();
-                hora = time.Hour.ToString();
-                min = time.Minute.ToString();
-                string tiempo = hora + ":" + min;
+                //time = DateTime.Now.ToLocalTime();
+                //hora = time.Hour.ToString();
+                //min = time.Minute.ToString();
+                //string tiempo = hora + ":" + min;
 
-                if (!File.Exists(Path.Combine(combina)))
-                {
-                    using (var escribe = new StreamWriter(combina, true))
-                    {
-                        escribe.WriteLine("excepcion de inicio de servicio");
-                        escribe.WriteLine(fecha_actual);
-                        escribe.WriteLine(tiempo);
-                    }
-                }
-                else
-                {
-                    using (var escribe = new StreamWriter(combina, true))
-                    {
-                        escribe.WriteLine("excepcion de inicio de servicio");
-                        escribe.WriteLine(fecha_actual);
-                        escribe.WriteLine(tiempo);
-                    }
-                }
+                //if (!File.Exists(Path.Combine(combina)))
+                //{
+                //    using (var escribe = new StreamWriter(combina, true))
+                //    {
+                //        escribe.WriteLine("excepcion de inicio de servicio");
+                //        escribe.WriteLine(fecha_actual);
+                //        escribe.WriteLine(tiempo);
+                //    }
+                //}
+                //else
+                //{
+                //    using (var escribe = new StreamWriter(combina, true))
+                //    {
+                //        escribe.WriteLine("excepcion de inicio de servicio");
+                //        escribe.WriteLine(fecha_actual);
+                //        escribe.WriteLine(tiempo);
+                //    }
+                //}
 
                 bool isInBackground;
                 RunningAppProcessInfo myProcess = new RunningAppProcessInfo();
@@ -161,36 +161,36 @@ namespace monitor_inteligente
         {
             base.OnDestroy();
 
-            var combina = Path.Combine(path_archivos, "historial.txt");
-            date = DateTime.Today;
-            dia = date.Day.ToString();
-            mes = date.Month.ToString();
-            año = date.Year.ToString();
-            fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
+            //var combina = Path.Combine(path_archivos, "historial.txt");
+            //date = DateTime.Today;
+            //dia = date.Day.ToString();
+            //mes = date.Month.ToString();
+            //año = date.Year.ToString();
+            //fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
 
-            time = DateTime.Now.ToLocalTime();
-            hora = time.Hour.ToString();
-            min = time.Minute.ToString();
-            string tiempo = hora + ":" + min;
+            //time = DateTime.Now.ToLocalTime();
+            //hora = time.Hour.ToString();
+            //min = time.Minute.ToString();
+            //string tiempo = hora + ":" + min;
 
-            if (!File.Exists(Path.Combine(combina)))
-            {
-                using (var escribe = new StreamWriter(combina, true))
-                {
-                    escribe.WriteLine("se detuvo el servicio");
-                    escribe.WriteLine(fecha_actual);
-                    escribe.WriteLine(tiempo);
-                }
-            }
-            else
-            {
-                using (var escribe = new StreamWriter(combina, true))
-                {
-                    escribe.WriteLine("se detuvo el servicio");
-                    escribe.WriteLine(fecha_actual);
-                    escribe.WriteLine(tiempo);
-                }
-            }
+            //if (!File.Exists(Path.Combine(combina)))
+            //{
+            //    using (var escribe = new StreamWriter(combina, true))
+            //    {
+            //        escribe.WriteLine("se detuvo el servicio");
+            //        escribe.WriteLine(fecha_actual);
+            //        escribe.WriteLine(tiempo);
+            //    }
+            //}
+            //else
+            //{
+            //    using (var escribe = new StreamWriter(combina, true))
+            //    {
+            //        escribe.WriteLine("se detuvo el servicio");
+            //        escribe.WriteLine(fecha_actual);
+            //        escribe.WriteLine(tiempo);
+            //    }
+            //}
 
             bool isInBackground;
             RunningAppProcessInfo myProcess = new RunningAppProcessInfo();
