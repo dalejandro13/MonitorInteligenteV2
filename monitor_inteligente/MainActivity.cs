@@ -33,7 +33,7 @@ namespace monitor_inteligente
     [Activity(Label = "@string/app_name", Theme = "@style/AppTheme", MainLauncher = true)]
     public class MainActivity : AppCompatActivity
     {
-        string path_arch = Android.OS.Environment.GetExternalStoragePublicDirectory(Android.OS.Environment.DirectoryDownloads).ToString() + "/archivos";
+        //string path_bitacora = Android.OS.Environment.GetExternalStoragePublicDirectory(Android.OS.Environment.DirectoryDownloads).ToString() + "/archivos";
         string ruta1 = Android.OS.Environment.GetExternalStoragePublicDirectory(Android.OS.Environment.DirectoryMovies).ToString() + "/archivos/parametros.txt";
         string path_archivos = Android.OS.Environment.GetExternalStoragePublicDirectory(Android.OS.Environment.DirectoryMovies).ToString() + "/archivos";
         int ctrl = 0, hora_actual = 0, hi_aux = 0, hf_aux = 0, ctrl_lectura = 0, ctrl_lea = 0, conteo_lineas = 0, min_aux = 0, desconect = 0, level = 0, rompe = 0;
@@ -82,8 +82,8 @@ namespace monitor_inteligente
             lista.Clear();
         }
 
-        ///////////////////////////////////////////////////////////
-        protected override async void OnCreate(Bundle savedInstanceState)
+    ///////////////////////////////////////////////////////////
+    protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
             // Set our view from the "main" layout resource
@@ -128,7 +128,7 @@ namespace monitor_inteligente
                             //await CheckForInternetConnection(); //AGREGADO
                             cicleactive = false;
                             pm = (PowerManager)GetSystemService(Context.PowerService);
-                            wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
+                            wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
                             wakeLock.Acquire();
                             wakeLock.Release();
                             StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
@@ -156,28 +156,26 @@ namespace monitor_inteligente
                 offline = true;
                 if (CrossConnectivity.Current.IsConnected.ToString().Equals("false"))
                 {
-                    if (CrossConnectivity.Current.ConnectionTypes.Contains(ConnectionType.WiFi))
+                    if (CrossConnectivity.Current.ConnectionTypes.Contains(ConnectionType.WiFi)) //si se pierde la conexion pero el wifi todavia funciona
                     {
-                        //si se pierde la conexion pero el wifi todavia funciona
-                        Thread.Sleep(5000);
-                        wifiinfo = wifi.ConnectionInfo;
-                        level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
-                        if (level < 3)
-                        {
-                            enableInternet = false;
-                            //await CheckForInternetConnection(); //AGREGADO
-                            cicleactive = false;
-                            offline = false;
-                            level = 0;
-                            Toast.MakeText(this, "conexion perdida con wifi", ToastLength.Long).Show();
-                            ctrlWifi = false;
-                            pm = (PowerManager)GetSystemService(Context.PowerService);
-                            wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
-                            wakeLock.Acquire();
-                            wakeLock.Release();
-                            StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
-                            await ReadFile(); //AGREGADO
-                        }
+                        //wifiinfo = wifi.ConnectionInfo;
+                        //level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
+                        //if (level < 3)
+                        //{
+                        enableInternet = false;
+                        //await CheckForInternetConnection(); //AGREGADO
+                        cicleactive = false;
+                        offline = false;
+                        level = 0;
+                        Toast.MakeText(this, "conexion perdida con wifi", ToastLength.Long).Show();
+                        ctrlWifi = false;
+                        pm = (PowerManager)GetSystemService(Context.PowerService);
+                        wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
+                        wakeLock.Acquire();
+                        wakeLock.Release();
+                        StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                        await ReadFile(); //AGREGADO
+                        //}
                     }
                 }
                 else
@@ -209,7 +207,7 @@ namespace monitor_inteligente
                                 offline = false;
                                 ctrlWifi = false;
                                 pm = (PowerManager)GetSystemService(Context.PowerService);
-                                wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
+                                wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
                                 wake.Acquire(); //el dispositivo sale de hibernar
                                 wake.Release();
                                 StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
@@ -231,7 +229,7 @@ namespace monitor_inteligente
                             level = 0;
                             Toast.MakeText(this, "sin conexion por wifi", ToastLength.Long).Show();
                             pm = (PowerManager)GetSystemService(Context.PowerService);
-                            wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
+                            wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
                             wakeLock.Acquire();
                             wakeLock.Release();
                             StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
@@ -244,48 +242,6 @@ namespace monitor_inteligente
                 }
             };
         }
-
-        //async Task CheckForInternetConnection()
-        //{
-        //    try
-        //    {
-        //        if (enableInternet == true)
-        //        {
-        //            pm = (PowerManager)GetSystemService(Context.PowerService);
-        //            wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
-        //            wakeLock.Acquire();
-        //            wakeLock.Release();
-        //            intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-        //            StartActivity(intent);
-        //        }
-        //    }
-        //    catch
-        //    {
-        //        enableInternet = false;
-        //    }
-
-        //    if (enableInternet == true)
-        //    {
-        //        for (int i = 0; i <= 1547; i++)
-        //        {
-        //            await Task.Delay(30);
-        //        }
-        //        await CheckForInternetConnection();
-        //    }
-        //}
-
-        //private void OnOff(object sender, ElapsedEventArgs e)
-        //{
-        //    pm = (PowerManager)GetSystemService(Context.PowerService);
-        //    wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
-        //    wakeLock.Acquire();
-        //    wakeLock.Release();
-        //    //Thread.Sleep(2000);
-        //    intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-        //    StartActivity(intent); //el dispositivo entra a hibernar
-
-        //    //StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
-        //}
 
         async Task Download()
         {
@@ -327,16 +283,11 @@ namespace monitor_inteligente
                         }
                     }
 
-                    if (!File.Exists(ruta1))
-                    {
-                        File.WriteAllText(ruta1, string.Empty);
-                    }
-                    //FileInfo f1 = new FileInfo(ruta1);
-                    //if (f1.Length != tam_parametros)
+                    //if (!File.Exists(ruta1))
                     //{
-                    await DownloadParameters(); //DESCARGA EL ARCHIVO DE PARAMETROS.TXT
+                    //    File.WriteAllText(ruta1, string.Empty);
                     //}
-                    //Leer archivo en tvBox para identificar el Bus
+                    await DownloadParameters(); //DESCARGA EL ARCHIVO DE PARAMETROS.TXT
                 }
                 catch (Exception ex)
                 {
@@ -602,7 +553,7 @@ namespace monitor_inteligente
                         File.Delete(Path.Combine(path_archivos, nm)); //borrar el archivo que quedo con descarga inconclusa (Corrupto)
                         nm = string.Empty;
                         pm = (PowerManager)GetSystemService(Context.PowerService);
-                        wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
+                        wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
                         wakeLock.Acquire();
                     }
                 }
@@ -964,6 +915,10 @@ namespace monitor_inteligente
                         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
                         if (lista.Count != 0)
                         {
+                            if (lista.Count == 1)
+                            {
+                                recorre = 0;
+                            }
                             ctrl = 0;
                             id = string.Empty;
                             nm = string.Empty;
@@ -1040,50 +995,23 @@ namespace monitor_inteligente
 
         async Task stayalert()
         {
+            pm = (PowerManager)GetSystemService(Context.PowerService);
             try
             {
-                using (WebClient pet = new WebClient())
+                if (CrossConnectivity.Current.IsConnected) //cuando esta conectado a wifi
                 {
-                    if (CrossConnectivity.Current.IsConnected)
-                    {
-                        HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create("http://www.google.com");
-                        myRequest.Timeout = 10000;
-                        HttpWebResponse response = (HttpWebResponse)myRequest.GetResponse();
-
-                        if (response.StatusCode == HttpStatusCode.OK)
-                        {
-                            response.Close();
-                        }
-                        else
-                        {
-                            response.Close();
-                        }
-
-                        pm = (PowerManager)GetSystemService(Context.PowerService);
-                        //wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
-                        //wakeLock.Acquire();
-                        if (CrossConnectivity.Current.IsConnected)
-                        {
-                            intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-                            StartActivity(intent);
-                            wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
-                            wakeLock.Acquire();
-                        }
-                        else
-                        {
-                            pm = (PowerManager)GetSystemService(Context.PowerService);
-                            wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
-                            wake.Acquire();
-                            wake.Release();
-                        }
-                    }
-                    else
-                    {
-                        pm = (PowerManager)GetSystemService(Context.PowerService);
-                        wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
-                        wake.Acquire();
-                        wake.Release();
-                    }
+                    intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
+                    StartActivity(intent);
+                    wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
+                    wakeLock.Acquire();
+                    StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                }
+                else //cuando esta desconectado de wifi
+                {
+                    wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
+                    wake.Acquire();
+                    wake.Release();
+                    StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                 }
             }
             catch (Exception Ex)
@@ -1094,12 +1022,16 @@ namespace monitor_inteligente
                 {
                     intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
                     StartActivity(intent);
+                    wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
+                    wakeLock.Acquire();
+                    StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                 }
                 else
                 {
-                    pm = (PowerManager)GetSystemService(Context.PowerService);
-                    wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
+                    wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
                     wake.Acquire();
+                    wake.Release();
+                    StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                 }
             }
         }
@@ -1641,66 +1573,41 @@ namespace monitor_inteligente
 
             async Task stayalert()
             {
+                pm = (PowerManager)context.GetSystemService(PowerService);
                 try
                 {
-                    using (WebClient pet = new WebClient())
-                    {
-                        if (CrossConnectivity.Current.IsConnected)
-                        {
-                            HttpWebRequest myRequest = (HttpWebRequest)WebRequest.Create("http://www.google.com");
-                            myRequest.Timeout = 10000;
-                            HttpWebResponse response = (HttpWebResponse)myRequest.GetResponse();
-                            if (response.StatusCode == HttpStatusCode.OK)
-                            {
-                                response.Close();
-                            }
-                            else
-                            {
-                                response.Close();
-                            }
-
-                            pm = (PowerManager)context.GetSystemService(PowerService);
-                            //wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
-                            //wakeLock.Acquire();
-                            if (CrossConnectivity.Current.IsConnected)
-                            {
-                                inten = context.PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-                                context.StartActivity(inten);
-                                //wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
-                                //wakeLock.Acquire();
-                            }
-                            else
-                            {
-                                pm = (PowerManager)context.GetSystemService(Context.PowerService);
-                                wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
-                                wake.Acquire();
-                                wake.Release();
-                            }
-                        }
-                        else
-                        {
-                            pm = (PowerManager)context.GetSystemService(Context.PowerService);
-                            wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
-                            wake.Acquire();
-                            wake.Release();
-                        }
-                    }
-                }
-                catch (Exception Ex)
-                {
-                    //wifiinfo = wifi.ConnectionInfo;
-                    //level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
                     if (CrossConnectivity.Current.IsConnected)
                     {
                         inten = context.PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
                         context.StartActivity(inten);
+                        wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
+                        wakeLock.Acquire();
+                        context.StartService(new Intent(context, typeof(BackgroundService))); //AGREGADO
                     }
                     else
                     {
-                        pm = (PowerManager)context.GetSystemService(Context.PowerService);
-                        wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
+                        wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
                         wake.Acquire();
                         wake.Release();
+                        context.StopService(new Intent(context, typeof(BackgroundService))); //AGREGADO
+                    }
+                }
+                catch (Exception Ex)
+                {
+                    if (CrossConnectivity.Current.IsConnected)
+                    {
+                        inten = context.PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
+                        context.StartActivity(inten);
+                        wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
+                        wakeLock.Acquire();
+                        context.StartService(new Intent(context, typeof(BackgroundService))); //AGREGADO
+                    }
+                    else
+                    {
+                        wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
+                        wake.Acquire();
+                        wake.Release();
+                        context.StopService(new Intent(context, typeof(BackgroundService))); //AGREGADO
                     }
                 }
             }
@@ -1777,6 +1684,14 @@ namespace monitor_inteligente
         //protected override async void OnDestroy()
         //{
         //    base.OnDestroy();
+        //    var connectivityManager = (ConnectivityManager)(Application.Context.GetSystemService(Context.ConnectivityService));
+        //    NetworkInfo networkInfo = connectivityManager.ActiveNetworkInfo;
+        //    if (networkInfo != null && networkInfo.IsConnected)
+        //    {
+
+        //    }
+
+
         //    var combina = Path.Combine(path_arch, "historial.txt");
         //    if (!File.Exists(Path.Combine(combina)))
         //    {
@@ -1854,18 +1769,16 @@ namespace monitor_inteligente
             base.OnResume();
             try
             {
+                bool isInBackground;
+                RunningAppProcessInfo myProcess = new RunningAppProcessInfo();
+                GetMyMemoryState(myProcess);
+                isInBackground = myProcess.Importance != Importance.Foreground;
+                if (isInBackground)
                 {
-                    bool isInBackground;
-                    RunningAppProcessInfo myProcess = new RunningAppProcessInfo();
-                    GetMyMemoryState(myProcess);
-                    isInBackground = myProcess.Importance != Importance.Foreground;
-                    if (isInBackground)
-                    {
-                        var intento = new Intent(Application.Context, typeof(MainActivity));
-                        intento.AddCategory(Intent.CategoryLauncher);
-                        intento.AddFlags(ActivityFlags.NewTask);
-                        Application.Context.StartActivity(intento);
-                    }
+                    var intento = new Intent(Application.Context, typeof(MainActivity));
+                    intento.AddCategory(Intent.CategoryLauncher);
+                    intento.AddFlags(ActivityFlags.NewTask);
+                    Application.Context.StartActivity(intento);
                 }
             }
             catch(Exception)
