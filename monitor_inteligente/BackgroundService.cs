@@ -26,13 +26,14 @@ namespace monitor_inteligente
     {
         string path_archivos = Android.OS.Environment.GetExternalStoragePublicDirectory(Android.OS.Environment.DirectoryDownloads).ToString() + "/archivos";
         string combina = string.Empty;
+        int CountErase;
         WifiManager wm;
         WifiManager.WifiLock wifiLock;
         public Intent intent;
         PowerManager pm;
         WakeLock wake;
         //Singleton sgl;
-        System.Timers.Timer Tbusy;
+        //System.Timers.Timer Tbusy;
         DateTime time, date;
         string dia, mes, año, fecha_actual, hora, min;
         bool enableMethod = true;
@@ -45,19 +46,24 @@ namespace monitor_inteligente
         [return: GeneratedEnum]
         public override StartCommandResult OnStartCommand(Intent intent, [GeneratedEnum] StartCommandFlags flags, int startId)
         {
-            //WifiManager wm = (WifiManager)GetSystemService(WifiService);
-            //wifiLock = wm.CreateWifiLock(WifiMode.FullHighPerf, "keep wifi on");
-            //wifiLock.Acquire();
-            //Tbusy = new System.Timers.Timer();
-            //pm = (PowerManager)GetSystemService(Context.PowerService);
-            //wake = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
-            //wake.Acquire();
             enableMethod = true;
+            CountErase = 0;
             combina = Path.Combine(path_archivos, "historial.txt"); //agregado
+            pm = (PowerManager)GetSystemService(Context.PowerService);
+            wake = pm.NewWakeLock(WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "stay awake gently");
             //obj = new Singleton();  //se declara clase Singleton
             //Initializetimer();
+            Task.Run(async () => await ActivateLock());
             Task.Run(async () => await MethodRecursive());
             return StartCommandResult.Sticky;
+        }
+
+        async Task ActivateLock()
+        {
+            wake.Acquire();
+            intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
+            StartActivity(intent);
+            await Task.Delay(3000);
         }
 
         async Task MethodRecursive()
@@ -77,9 +83,15 @@ namespace monitor_inteligente
                     hora = time.Hour.ToString();
                     min = time.Minute.ToString();
                     string tiempo = hora + ":" + min;
+                    CountErase++;
+                    if (CountErase >= 60)
+                    {
+                        File.WriteAllText(combina, string.Empty);
+                        CountErase = 0;
+                    }
                     if (!File.Exists(combina))
                     {
-                        using (StreamWriter file = new StreamWriter(combina, true))
+                        using (StreamWriter file = new StreamWriter(combina))
                         {
                             file.WriteLine("se ejecuta en CheckForInternetConnection");
                             file.WriteLine("fecha: " + fecha_actual);
@@ -88,7 +100,7 @@ namespace monitor_inteligente
                     }
                     else
                     {
-                        using (StreamWriter file = new StreamWriter(combina, true))
+                        using (StreamWriter file = new StreamWriter(combina))
                         {
                             file.WriteLine("se ejecuta en CheckForInternetConnection");
                             file.WriteLine("fecha: " + fecha_actual);
@@ -96,12 +108,13 @@ namespace monitor_inteligente
                         }
                     }
 
-                    pm = (PowerManager)GetSystemService(Context.PowerService);
-                    wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                    wake.Acquire();
-                    wake.Release();
-                    intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
+                    //pm = (PowerManager)GetSystemService(Context.PowerService);
+                    //wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
+                    //wake.Acquire();
+                    //wake.Release();
+                    intent = PackageManager.GetLaunchIntentForPackage("com.flexolumens.monitor"); //va a codigo de envio serial
                     StartActivity(intent);
+                    
                 }
                 else
                 {
@@ -112,11 +125,11 @@ namespace monitor_inteligente
             {
 
             }
-            if (enableMethod == true)
-            {
-                await Task.Delay(1000 * 60 * 4);
-                await MethodRecursive();
-            }
+            //if (enableMethod == true)
+            //{
+            //    await Task.Delay(1000 * 60 * 4);
+            //    await MethodRecursive();
+            //}
         }
 
         //async Task Initializetimer()
@@ -216,41 +229,42 @@ namespace monitor_inteligente
         //    }
         //}
 
-        public override bool StopService(Intent name)
-        {
-            date = DateTime.Today;
-            dia = date.Day.ToString();
-            mes = date.Month.ToString();
-            año = date.Year.ToString();
-            fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
-            time = DateTime.Now.ToLocalTime();
-            hora = time.Hour.ToString();
-            min = time.Minute.ToString();
-            string tiempo = hora + ":" + min;
-            if (!File.Exists(combina))
-            {
-                using (StreamWriter file = new StreamWriter(combina, true))
-                {
-                    file.WriteLine("se ejecuta en Stopservice");
-                    file.WriteLine("fecha: " + fecha_actual);
-                    file.WriteLine("hora: " + tiempo);
-                }
-            }
-            else
-            {
-                using (StreamWriter file = new StreamWriter(combina, true))
-                {
-                    file.WriteLine("se ejecuta en Stopservice");
-                    file.WriteLine("fecha: " + fecha_actual);
-                    file.WriteLine("hora: " + tiempo);
-                }
-            }
+        //public override bool StopService(Intent name)
+        //{
+        //    date = DateTime.Today;
+        //    dia = date.Day.ToString();
+        //    mes = date.Month.ToString();
+        //    año = date.Year.ToString();
+        //    fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
+        //    time = DateTime.Now.ToLocalTime();
+        //    hora = time.Hour.ToString();
+        //    min = time.Minute.ToString();
+        //    string tiempo = hora + ":" + min;
+        //    if (!File.Exists(combina))
+        //    {
+        //        using (StreamWriter file = new StreamWriter(combina, true))
+        //        {
+        //            file.WriteLine("se ejecuta en Stopservice");
+        //            file.WriteLine("fecha: " + fecha_actual);
+        //            file.WriteLine("hora: " + tiempo);
+        //        }
+        //    }
+        //    else
+        //    {
+        //        using (StreamWriter file = new StreamWriter(combina, true))
+        //        {
+        //            file.WriteLine("se ejecuta en Stopservice");
+        //            file.WriteLine("fecha: " + fecha_actual);
+        //            file.WriteLine("hora: " + tiempo);
+        //        }
+        //    }
 
-            //Tbusy.Dispose();
-            //Tbusy.Stop();
-            enableMethod = false;
-            return base.StopService(name);
-        }
+        //    //Tbusy.Dispose();
+        //    //Tbusy.Stop();
+        //    enableMethod = false;
+        //    wake.Release();
+        //    return base.StopService(name);
+        //}
 
         public override void OnDestroy()
         {
@@ -265,6 +279,13 @@ namespace monitor_inteligente
             hora = time.Hour.ToString();
             min = time.Minute.ToString();
             string tiempo = hora + ":" + min;
+            CountErase++;
+            if (CountErase >= 60)
+            {
+                File.WriteAllText(combina, string.Empty);
+                CountErase = 0;
+            }
+
             if (!File.Exists(combina))
             {
                 using (StreamWriter file = new StreamWriter(combina, true))
@@ -283,7 +304,14 @@ namespace monitor_inteligente
                     file.WriteLine("hora: " + tiempo);
                 }
             }
+
             enableMethod = false;
+            wake.Release();
+            PowerManager pwm = (PowerManager)GetSystemService(Context.PowerService);
+            WakeLock wkl = pwm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
+            wkl.Acquire();
+            wkl.Release();
+
             //Tbusy.Dispose();
             //    bool isInBackground;
             //    RunningAppProcessInfo myProcess = new RunningAppProcessInfo();

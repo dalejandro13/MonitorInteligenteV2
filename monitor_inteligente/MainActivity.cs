@@ -26,6 +26,7 @@ using Java.Net;
 using System.Net.Sockets;
 using static Android.App.ActivityManager;
 using System.Timers;
+using Android.Hardware.Usb;
 
 namespace monitor_inteligente
 {
@@ -56,7 +57,7 @@ namespace monitor_inteligente
         public Intent intent;
         public Intent IntentService;
         WifiInfo wifiinfo;
-        //Task t;
+        public static Activity first;
 
         public async Task CleanMemory()
         {
@@ -82,8 +83,8 @@ namespace monitor_inteligente
             lista.Clear();
         }
 
-    ///////////////////////////////////////////////////////////
-    protected override async void OnCreate(Bundle savedInstanceState)
+        ///////////////////////////////////////////////////////////
+        protected override async void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
             // Set our view from the "main" layout resource
@@ -97,6 +98,7 @@ namespace monitor_inteligente
             progreso.SetProgressStyle(ProgressDialogStyle.Horizontal);
             progreso.SetCanceledOnTouchOutside(false);
             progreso.Max = 100;
+            first = this;
             wifi = (WifiManager)GetSystemService(Android.Content.Context.WifiService); //obtiene los servicios de wifi
             await Folder();
             enableInternet = false;
@@ -107,7 +109,7 @@ namespace monitor_inteligente
             {
                 while (ctrlWifi)
                 {
-                    Thread.Sleep(5000);
+                    //Thread.Sleep(5000);
                     wifiinfo = wifi.ConnectionInfo;
                     level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11);
                     if (level >= 3)
@@ -118,8 +120,8 @@ namespace monitor_inteligente
                         {
                             enableInternet = true; //AGREGADO
                             //await CheckForInternetConnection(); //AGREGADO
-                            intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-                            StartActivity(intent);
+                            //////intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
+                            //////StartActivity(intent);
                             StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                         }
                         else
@@ -127,10 +129,10 @@ namespace monitor_inteligente
                             enableInternet = false; //AGREGADO
                             //await CheckForInternetConnection(); //AGREGADO
                             cicleactive = false;
-                            pm = (PowerManager)GetSystemService(Context.PowerService);
-                            wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                            wakeLock.Acquire();
-                            wakeLock.Release();
+                            //////pm = (PowerManager)GetSystemService(Context.PowerService);
+                            //////wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
+                            //////wakeLock.Acquire();
+                            //////wakeLock.Release();
                             StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                             await ReadFile(); //AGREGADO
                         }
@@ -151,31 +153,30 @@ namespace monitor_inteligente
 
             CrossConnectivity.Current.ConnectivityChanged += async delegate //detecta eventos de conexion por wifi
             {
-                //t.Dispose();
-                Thread.Sleep(5000);
+                Thread.Sleep(3000);
                 offline = true;
                 if (CrossConnectivity.Current.IsConnected.ToString().Equals("false"))
                 {
                     if (CrossConnectivity.Current.ConnectionTypes.Contains(ConnectionType.WiFi)) //si se pierde la conexion pero el wifi todavia funciona
                     {
-                        //wifiinfo = wifi.ConnectionInfo;
-                        //level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
-                        //if (level < 3)
-                        //{
-                        enableInternet = false;
-                        //await CheckForInternetConnection(); //AGREGADO
-                        cicleactive = false;
-                        offline = false;
-                        level = 0;
-                        Toast.MakeText(this, "conexion perdida con wifi", ToastLength.Long).Show();
-                        ctrlWifi = false;
-                        pm = (PowerManager)GetSystemService(Context.PowerService);
-                        wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                        wakeLock.Acquire();
-                        wakeLock.Release();
-                        StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
-                        await ReadFile(); //AGREGADO
-                        //}
+                        wifiinfo = wifi.ConnectionInfo;
+                        level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
+                        if (level < 3)
+                        {
+                            enableInternet = false;
+                            //await CheckForInternetConnection(); //AGREGADO
+                            cicleactive = false;
+                            offline = false;
+                            level = 0;
+                            Toast.MakeText(this, "conexion perdida con wifi", ToastLength.Long).Show();
+                            ctrlWifi = false;
+                            //////pm = (PowerManager)GetSystemService(Context.PowerService);
+                            //////wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
+                            //////wakeLock.Acquire();
+                            //////wakeLock.Release();
+                            StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                            await ReadFile(); //AGREGADO
+                        }
                     }
                 }
                 else
@@ -193,8 +194,8 @@ namespace monitor_inteligente
                                 cicleactive = true;
                                 offline = true;
                                 await Download(); //cuando hay conexion a internet por wifi, inicia proceso para la descarga de archivos
-                                intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-                                StartActivity(intent); //el dispositivo entra a hibernar
+                                //////intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
+                                //////StartActivity(intent); //el dispositivo entra a hibernar
                                 //enableInternet = true; //AGREGADO
                                 //await CheckForInternetConnection(); //AGREGADO
                                 StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
@@ -206,10 +207,10 @@ namespace monitor_inteligente
                                 cicleactive = false;
                                 offline = false;
                                 ctrlWifi = false;
-                                pm = (PowerManager)GetSystemService(Context.PowerService);
-                                wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                                wake.Acquire(); //el dispositivo sale de hibernar
-                                wake.Release();
+                                //////pm = (PowerManager)GetSystemService(Context.PowerService);
+                                //////wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
+                                //////wake.Acquire(); //el dispositivo sale de hibernar
+                                //////wake.Release();
                                 StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                                 await ReadFile(); //AGREGADO
                             }
@@ -228,10 +229,10 @@ namespace monitor_inteligente
                             offline = false;
                             level = 0;
                             Toast.MakeText(this, "sin conexion por wifi", ToastLength.Long).Show();
-                            pm = (PowerManager)GetSystemService(Context.PowerService);
-                            wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                            wakeLock.Acquire();
-                            wakeLock.Release();
+                            //////pm = (PowerManager)GetSystemService(Context.PowerService);
+                            //////wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
+                            //////wakeLock.Acquire();
+                            //////wakeLock.Release();
                             StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                             await ReadFile(); //AGREGADO
                         }
@@ -390,7 +391,7 @@ namespace monitor_inteligente
                                                                 progreso.SetMessage("Descargando " + nm);
                                                                 progreso.Show();
                                                                 await cliente.DownloadFileTaskAsync(new System.Uri(pathserver), pathvideo);
-                                                                Thread.Sleep(3000);
+                                                                Thread.Sleep(2000);
                                                                 progreso.Dismiss();
                                                             }
                                                         }
@@ -410,7 +411,7 @@ namespace monitor_inteligente
                                                                     progreso.SetMessage("Descargando " + nm);
                                                                     progreso.Show();
                                                                     await cliente.DownloadFileTaskAsync(new System.Uri(pathserver), pathvideo);
-                                                                    Thread.Sleep(3000);
+                                                                    Thread.Sleep(2000);
                                                                     progreso.Dismiss();
                                                                 }
                                                                 catch (WebException Ex)
@@ -431,7 +432,7 @@ namespace monitor_inteligente
                                                                         progreso.SetMessage("Descargando " + nm);
                                                                         progreso.Show();
                                                                         await cliente.DownloadFileTaskAsync(new System.Uri(pathserver), pathvideo);
-                                                                        Thread.Sleep(3000);
+                                                                        Thread.Sleep(2000);
                                                                         trydownload = false;
                                                                         progreso.Dismiss();
                                                                     }
@@ -501,23 +502,36 @@ namespace monitor_inteligente
                 {
                     cliente1.DownloadFileCompleted += new AsyncCompletedEventHandler(completado);
                     cliente1.DownloadProgressChanged += new DownloadProgressChangedEventHandler(cargando);
+                    progreso.SetMessage("Descargando Parametros");
+                    progreso.Show();
                     await cliente1.DownloadFileTaskAsync(new System.Uri("https://flexolumens.co/PantallaInterna/parametros.txt"), ruta1);
-                    Thread.Sleep(3000);
+                    Thread.Sleep(2000);
+                    progreso.Dismiss();
                 }
                 catch (WebException exe)
                 {
-
+                    Toast.MakeText(this, "no se puede descargar parametros1", ToastLength.Long).Show();
                 }
             }
 
-            while (ruta1.Length == 0)
+            while (new FileInfo(ruta1).Length == 0)
             {
                 using (WebClient cliente1 = new WebClient())
                 {
-                    cliente1.DownloadFileCompleted += new AsyncCompletedEventHandler(completado);
-                    cliente1.DownloadProgressChanged += new DownloadProgressChangedEventHandler(cargando);
-                    await cliente1.DownloadFileTaskAsync(new System.Uri("https://flexolumens.co/PantallaInterna/parametros.txt"), ruta1);
-                    Thread.Sleep(3000);
+                    try
+                    {
+                        cliente1.DownloadFileCompleted += new AsyncCompletedEventHandler(completado);
+                        cliente1.DownloadProgressChanged += new DownloadProgressChangedEventHandler(cargando);
+                        progreso.SetMessage("Descargando Parametros");
+                        progreso.Show();
+                        await cliente1.DownloadFileTaskAsync(new System.Uri("https://flexolumens.co/PantallaInterna/parametros.txt"), ruta1);
+                        Thread.Sleep(2000);
+                        progreso.Dismiss();
+                    }
+                    catch(Exception ex)
+                    {
+                        Toast.MakeText(this, "no se puede descargar parametros2", ToastLength.Long).Show();
+                    }
                 }
             }
         }
@@ -552,9 +566,10 @@ namespace monitor_inteligente
                         reconnecting = false;
                         File.Delete(Path.Combine(path_archivos, nm)); //borrar el archivo que quedo con descarga inconclusa (Corrupto)
                         nm = string.Empty;
-                        pm = (PowerManager)GetSystemService(Context.PowerService);
-                        wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                        wakeLock.Acquire();
+                        //pm = (PowerManager)GetSystemService(Context.PowerService);
+                        //wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
+                        //wakeLock.Acquire();
+                        StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                     }
                 }
             }
@@ -604,392 +619,412 @@ namespace monitor_inteligente
             Window.DecorView.SystemUiVisibility = (StatusBarVisibility)newUiOptions;
 
             await stayalert();
-            try
+            FileInfo Fi = new FileInfo(ruta1);
+            if (Fi.Length != 0)
             {
-                rompe = 0;
-                date = DateTime.Today;
-                dia = date.Day.ToString();
-                mes = date.Month.ToString();
-                año = date.Year.ToString();
-                fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
-                hour_enabled = true;
-                playing = false;
-
-                DirectoryInfo dataDir = new DirectoryInfo(path_archivos);
-                FileInfo[] v = dataDir.GetFiles("*.mp4");
-                FileInfo[] f = dataDir.GetFiles("*.txt");
-                var tam = v.Length;
-                var tam1 = f.Length;
-                if (tam != 0 && tam1 != 0)
+                try
                 {
-                    nom1 = f[0].Name; //nombre del archivo txt
-                    string rut_archivo = Path.Combine(path_archivos, nom1); //ruta del archivo de los parametros
-                    string line = string.Empty; //se declara variable que almacene linea por linea
-                    ctrl_lectura = 0;
-                    ctrl_lea = 0;
-                    ctrl = 0;
-                    id = string.Empty;
-                    nm = string.Empty;
-                    hi = string.Empty;
-                    hf = string.Empty;
-                    ca = string.Empty;
+                    rompe = 0;
+                    date = DateTime.Today;
+                    dia = date.Day.ToString();
+                    mes = date.Month.ToString();
+                    año = date.Year.ToString();
+                    fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
+                    hour_enabled = true;
+                    playing = false;
 
-                    using (var lines = new StreamReader(rut_archivo))
+                    DirectoryInfo dataDir = new DirectoryInfo(path_archivos);
+                    FileInfo[] v = dataDir.GetFiles("*.mp4");
+                    FileInfo[] f = dataDir.GetFiles("*.txt");
+                    var tam = v.Length;
+                    var tam1 = f.Length;
+                    if (tam != 0 && tam1 != 0)
                     {
-                        conteo_lineas = File.ReadAllLines(rut_archivo).Length; //obtiene el numero de lineas disponibles en el archivo
-                        while ((line = lines.ReadLine()) != null) //se lee linea por linea del archivo parametros.txt y lo guarda en line
+                        nom1 = f[0].Name; //nombre del archivo txt
+                        string rut_archivo = Path.Combine(path_archivos, nom1); //ruta del archivo de los parametros
+                        string line = string.Empty; //se declara variable que almacene linea por linea
+                        ctrl_lectura = 0;
+                        ctrl_lea = 0;
+                        ctrl = 0;
+                        id = string.Empty;
+                        nm = string.Empty;
+                        hi = string.Empty;
+                        hf = string.Empty;
+                        ca = string.Empty;
+
+                        using (var lines = new StreamReader(rut_archivo))
                         {
-                            if (line[0] == '<' && line[1] == 'i' && line[2] == 'd' && line[3] == '>')
+                            conteo_lineas = File.ReadAllLines(rut_archivo).Length; //obtiene el numero de lineas disponibles en el archivo
+                            while ((line = lines.ReadLine()) != null) //se lee linea por linea del archivo parametros.txt y lo guarda en line
                             {
-                                ctrl = 0;
-                                ctrl_lea++;
-                                isSaving = true;
-                                ctrl++;
-                                id = string.Empty;
-                                for (int i = 4; i < line.Length; i++)
+                                if (line[0] == '<' && line[1] == 'i' && line[2] == 'd' && line[3] == '>')
                                 {
-                                    if (isSaving == true)
-                                    {
-                                        if (line[i] == '<')
-                                        {
-                                            isSaving = false;
-                                        }
-                                        else
-                                        {
-                                            id += line[i];
-                                        }
-                                    }
-                                }
-                            }
-                            else if (line[0] == '<' && line[1] == 'n' && line[2] == 'm' && line[3] == '>')
-                            {
-                                ctrl_lea++;
-                                isSaving = true;
-                                ctrl++;
-                                nm = string.Empty;
-                                for (int i = 4; i < line.Length; i++)
-                                {
-                                    if (isSaving == true)
-                                    {
-                                        if (line[i] == '<')
-                                        {
-                                            isSaving = false;
-                                        }
-                                        else
-                                        {
-                                            nm += line[i];
-                                        }
-                                    }
-                                }
-                            }
-                            else if (line[0] == '<' && line[1] == 'h' && line[2] == 'i' && line[3] == '>')
-                            {
-                                ctrl_lea++;
-                                isSaving = true;
-                                ctrl++;
-                                hi = string.Empty;
-                                for (int i = 4; i < line.Length; i++)
-                                {
-                                    if (isSaving == true)
-                                    {
-                                        if (line[i] == '<')
-                                        {
-                                            isSaving = false;
-                                        }
-                                        else
-                                        {
-                                            hi += line[i];
-                                        }
-                                    }
-                                }
-                            }
-                            else if (line[0] == '<' && line[1] == 'h' && line[2] == 'f' && line[3] == '>')
-                            {
-                                ctrl_lea++;
-                                isSaving = true;
-                                ctrl++;
-                                hf = string.Empty;
-                                for (int i = 4; i < line.Length; i++)
-                                {
-                                    if (isSaving == true)
-                                    {
-                                        if (line[i] == '<')
-                                        {
-                                            isSaving = false;
-                                        }
-                                        else
-                                        {
-                                            hf += line[i];
-                                        }
-                                    }
-                                }
-                            }
-                            else if (line[0] == '<' && line[1] == 'c' && line[2] == 'a' && line[3] == '>')
-                            {
-                                ctrl_lea++;
-                                isSaving = true;
-                                ctrl++;
-                                ca = string.Empty;
-                                for (int i = 4; i < line.Length; i++)
-                                {
-                                    if (isSaving == true)
-                                    {
-                                        if (line[i] == '<')
-                                        {
-                                            isSaving = false;
-                                        }
-                                        else
-                                        {
-                                            ca += line[i];
-                                        }
-                                    }
-                                }
-                            }
-                            else //si aparece la etiqueta <mi>
-                            {
-                                id = string.Empty;
-                                nm = string.Empty;
-                                hi = string.Empty;
-                                hf = string.Empty;
-                                ca = string.Empty;
-                                ctrl_lea++;
-                                ctrl = 0;
-                            }
-
-
-                            if (ctrl >= 5)
-                            {
-                                ctrl = 0;
-                                time = DateTime.Now.ToLocalTime();
-                                hora = time.Hour.ToString();
-                                min = time.Minute.ToString();
-                                hora_actual = Convert.ToInt32(hora);
-                                string hora_actual1 = hora + ":" + min;
-
-                                hi_aux = Convert.ToInt32(hi);
-                                hf_aux = Convert.ToInt32(hf);
-                                min_aux = Convert.ToInt32(min);
-
-                                if (ca == fecha_actual && (hora_actual >= hi_aux && hora_actual < hf_aux)) // si el archivo tiene la fecha actual y la hora actual esta dentro del rango que muestra ese archivo, entonces reproduce el video
-                                {
-                                    lista.Clear();
+                                    ctrl = 0;
+                                    ctrl_lea++;
+                                    isSaving = true;
+                                    ctrl++;
                                     id = string.Empty;
-                                    hi = string.Empty;
-                                    hf = string.Empty;
-                                    ca = string.Empty;
-                                    try
+                                    for (int i = 4; i < line.Length; i++)
                                     {
-                                        string rut_video = Path.Combine(path_archivos, nm); //toma ruta del video
-                                        if (File.Exists(rut_video))
+                                        if (isSaving == true)
                                         {
-                                            if (!Video_main.IsPlaying)
+                                            if (line[i] == '<')
                                             {
-                                                aux_nm = nm;
-                                                ctrl_lea = 0; //variable que incremen
-                                                hour_enabled = true;
-                                                VideoPlay(video_main, rut_video);
+                                                isSaving = false;
+                                            }
+                                            else
+                                            {
+                                                id += line[i];
                                             }
                                         }
-                                        else
-                                        {
-                                            Toast.MakeText(this, "no hay videos para reproducir", ToastLength.Long).Show();
-                                            rut_video = Path.Combine(path_archivos, aux_nm); //toma ruta del video
-                                        }
-                                        nm = string.Empty;
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        //no hagas nada
                                     }
                                 }
-                                else
+                                else if (line[0] == '<' && line[1] == 'n' && line[2] == 'm' && line[3] == '>')
+                                {
+                                    ctrl_lea++;
+                                    isSaving = true;
+                                    ctrl++;
+                                    nm = string.Empty;
+                                    for (int i = 4; i < line.Length; i++)
+                                    {
+                                        if (isSaving == true)
+                                        {
+                                            if (line[i] == '<')
+                                            {
+                                                isSaving = false;
+                                            }
+                                            else
+                                            {
+                                                nm += line[i];
+                                            }
+                                        }
+                                    }
+                                }
+                                else if (line[0] == '<' && line[1] == 'h' && line[2] == 'i' && line[3] == '>')
+                                {
+                                    ctrl_lea++;
+                                    isSaving = true;
+                                    ctrl++;
+                                    hi = string.Empty;
+                                    for (int i = 4; i < line.Length; i++)
+                                    {
+                                        if (isSaving == true)
+                                        {
+                                            if (line[i] == '<')
+                                            {
+                                                isSaving = false;
+                                            }
+                                            else
+                                            {
+                                                hi += line[i];
+                                            }
+                                        }
+                                    }
+                                }
+                                else if (line[0] == '<' && line[1] == 'h' && line[2] == 'f' && line[3] == '>')
+                                {
+                                    ctrl_lea++;
+                                    isSaving = true;
+                                    ctrl++;
+                                    hf = string.Empty;
+                                    for (int i = 4; i < line.Length; i++)
+                                    {
+                                        if (isSaving == true)
+                                        {
+                                            if (line[i] == '<')
+                                            {
+                                                isSaving = false;
+                                            }
+                                            else
+                                            {
+                                                hf += line[i];
+                                            }
+                                        }
+                                    }
+                                }
+                                else if (line[0] == '<' && line[1] == 'c' && line[2] == 'a' && line[3] == '>')
+                                {
+                                    ctrl_lea++;
+                                    isSaving = true;
+                                    ctrl++;
+                                    ca = string.Empty;
+                                    for (int i = 4; i < line.Length; i++)
+                                    {
+                                        if (isSaving == true)
+                                        {
+                                            if (line[i] == '<')
+                                            {
+                                                isSaving = false;
+                                            }
+                                            else
+                                            {
+                                                ca += line[i];
+                                            }
+                                        }
+                                    }
+                                }
+                                else //si aparece la etiqueta <mi>
                                 {
                                     id = string.Empty;
                                     nm = string.Empty;
                                     hi = string.Empty;
                                     hf = string.Empty;
                                     ca = string.Empty;
+                                    ctrl_lea++;
+                                    ctrl = 0;
+                                }
+
+
+                                if (ctrl >= 5)
+                                {
+                                    ctrl = 0;
+                                    time = DateTime.Now.ToLocalTime();
+                                    hora = time.Hour.ToString();
+                                    min = time.Minute.ToString();
+                                    hora_actual = Convert.ToInt32(hora);
+                                    string hora_actual1 = hora + ":" + min;
+
+                                    hi_aux = Convert.ToInt32(hi);
+                                    hf_aux = Convert.ToInt32(hf);
+                                    min_aux = Convert.ToInt32(min);
+
+                                    if (ca == fecha_actual && (hora_actual >= hi_aux && hora_actual < hf_aux)) // si el archivo tiene la fecha actual y la hora actual esta dentro del rango que muestra ese archivo, entonces reproduce el video
+                                    {
+                                        lista.Clear();
+                                        id = string.Empty;
+                                        hi = string.Empty;
+                                        hf = string.Empty;
+                                        ca = string.Empty;
+                                        try
+                                        {
+                                            string rut_video = Path.Combine(path_archivos, nm); //toma ruta del video
+                                            if (File.Exists(rut_video))
+                                            {
+                                                if (!Video_main.IsPlaying)
+                                                {
+                                                    aux_nm = nm;
+                                                    ctrl_lea = 0; //variable que incremen
+                                                    hour_enabled = true;
+                                                    VideoPlay(video_main, rut_video);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                Toast.MakeText(this, "no hay videos para reproducir", ToastLength.Long).Show();
+                                                rut_video = Path.Combine(path_archivos, aux_nm); //toma ruta del video
+                                            }
+                                            nm = string.Empty;
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            //no hagas nada
+                                        }
+                                    }
+                                    else
+                                    {
+                                        id = string.Empty;
+                                        nm = string.Empty;
+                                        hi = string.Empty;
+                                        hf = string.Empty;
+                                        ca = string.Empty;
+                                    }
                                 }
                             }
                         }
-                    }
-                    if (conteo_lineas == ctrl_lea)
-                    {
-                        conteo_lineas = 0;
-                        ctrl_lea = 0;
-                        hour_enabled = false;
-                        //await ReadFile(); //LINEA NUEVA
-                        //poner alguna rutina que reproduzca algun video cuando en el archivo no se encuentra alguno con la fecha de hoy
-                    }
-
-                    ///////////////////////////////////////////////////////////////////////////////////////////////////
-                    /////////inicia de nuevo la lectura del archivo para que lea las etiquetas de los minutos//////////
-                    if (hour_enabled == false)
-                    {
-                        ctrl = 0;
-
-                        id = string.Empty;
-                        nm = string.Empty;
-                        mi = string.Empty;
-                        ca = string.Empty;
-                        //obtiene los nombres de los videos para almacenarlos en una lista
-                        if (lista.Count == 0)
+                        if (conteo_lineas == ctrl_lea)
                         {
-                            using (var lines = new StreamReader(rut_archivo))
+                            conteo_lineas = 0;
+                            ctrl_lea = 0;
+                            hour_enabled = false;
+                            //await ReadFile(); //LINEA NUEVA
+                            //poner alguna rutina que reproduzca algun video cuando en el archivo no se encuentra alguno con la fecha de hoy
+                        }
+
+                        ///////////////////////////////////////////////////////////////////////////////////////////////////
+                        /////////inicia de nuevo la lectura del archivo para que lea las etiquetas de los minutos//////////
+                        if (hour_enabled == false)
+                        {
+                            ctrl = 0;
+
+                            id = string.Empty;
+                            nm = string.Empty;
+                            mi = string.Empty;
+                            ca = string.Empty;
+                            //obtiene los nombres de los videos para almacenarlos en una lista
+                            if (lista.Count == 0)
                             {
-                                while ((line = lines.ReadLine()) != null) //se lee linea por linea del archivo parametros.txt y lo guarda en line
+                                using (var lines = new StreamReader(rut_archivo))
                                 {
-                                    if (line[0] == '<' && line[1] == 'n' && line[2] == 'm' && line[3] == '>')
+                                    while ((line = lines.ReadLine()) != null) //se lee linea por linea del archivo parametros.txt y lo guarda en line
                                     {
-                                        isSaving = true;
-                                        nm = string.Empty;
-                                        for (int i = 4; i < line.Length; i++)
+                                        if (line[0] == '<' && line[1] == 'n' && line[2] == 'm' && line[3] == '>')
                                         {
-                                            if (isSaving == true)
+                                            isSaving = true;
+                                            nm = string.Empty;
+                                            for (int i = 4; i < line.Length; i++)
                                             {
-                                                if (line[i] == '<')
+                                                if (isSaving == true)
                                                 {
-                                                    isSaving = false;
-                                                }
-                                                else
-                                                {
-                                                    nm += line[i];
+                                                    if (line[i] == '<')
+                                                    {
+                                                        isSaving = false;
+                                                    }
+                                                    else
+                                                    {
+                                                        nm += line[i];
+                                                    }
                                                 }
                                             }
                                         }
-                                    }
-                                    else if (line[0] == '<' && line[1] == 'm' && line[2] == 'i' && line[3] == '>')
-                                    {
-                                        isSaving = true;
-                                        mi = string.Empty;
-                                        for (int i = 4; i < line.Length; i++)
+                                        else if (line[0] == '<' && line[1] == 'm' && line[2] == 'i' && line[3] == '>')
                                         {
-                                            if (isSaving == true)
+                                            isSaving = true;
+                                            mi = string.Empty;
+                                            for (int i = 4; i < line.Length; i++)
                                             {
-                                                if (line[i] == '<')
+                                                if (isSaving == true)
                                                 {
-                                                    isSaving = false;
-                                                }
-                                                else
-                                                {
-                                                    mi += line[i];
+                                                    if (line[i] == '<')
+                                                    {
+                                                        isSaving = false;
+                                                    }
+                                                    else
+                                                    {
+                                                        mi += line[i];
+                                                    }
                                                 }
                                             }
                                         }
-                                    }
-                                    else if (line[0] == '<' && line[1] == 'c' && line[2] == 'a' && line[3] == '>')
-                                    {
-                                        isSaving = true;
-                                        ca = string.Empty;
-                                        for (int i = 4; i < line.Length; i++)
+                                        else if (line[0] == '<' && line[1] == 'c' && line[2] == 'a' && line[3] == '>')
                                         {
-                                            if (isSaving == true)
+                                            isSaving = true;
+                                            ca = string.Empty;
+                                            for (int i = 4; i < line.Length; i++)
                                             {
-                                                if (line[i] == '<')
+                                                if (isSaving == true)
                                                 {
-                                                    isSaving = false;
-                                                }
-                                                else
-                                                {
-                                                    ca += line[i];
+                                                    if (line[i] == '<')
+                                                    {
+                                                        isSaving = false;
+                                                    }
+                                                    else
+                                                    {
+                                                        ca += line[i];
+                                                    }
                                                 }
                                             }
+                                            if (/*ca == fecha_actual &&*/ mi != string.Empty)
+                                            {
+                                                lista.Add(nm);
+                                                mi = string.Empty;
+                                                nm = string.Empty;
+                                                ca = string.Empty;
+                                            }
                                         }
-                                        if (/*ca == fecha_actual &&*/ mi != string.Empty)
+                                        else
                                         {
-                                            lista.Add(nm);
                                             mi = string.Empty;
                                             nm = string.Empty;
                                             ca = string.Empty;
                                         }
                                     }
-                                    else
-                                    {
-                                        mi = string.Empty;
-                                        nm = string.Empty;
-                                        ca = string.Empty;
-                                    }
                                 }
                             }
-                        }
-                        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                        if (lista.Count != 0)
-                        {
-                            if (lista.Count == 1)
+                            //////////////////////////////////////////////////////////////////////
+                            if (lista.Count != 0)
                             {
-                                recorre = 0;
-                            }
-                            ctrl = 0;
-                            id = string.Empty;
-                            nm = string.Empty;
-                            mi = string.Empty;
-                            ca = string.Empty;
-                            try
-                            {
-                                await selectVideo();
-                                nm = string.Empty;
-                            }
-                            catch (Exception ex)
-                            {
-                                //no hagas nada
-                            }
-                        }
-                        else //cuando no se encuentre un video con la fecha actual
-                        {
-                            using (var lines = new StreamReader(ruta1))
-                            {
-                                while ((line = lines.ReadLine()) != null) //se lee linea por linea del archivo parametros.txt y lo guarda en line
+                                if (lista.Count == 1)
                                 {
-                                    if (line[0] == '<' && line[1] == 'n' && line[2] == 'm' && line[3] == '>')
+                                    recorre = 0;
+                                }
+                                ctrl = 0;
+                                id = string.Empty;
+                                nm = string.Empty;
+                                mi = string.Empty;
+                                ca = string.Empty;
+                                try
+                                {
+                                    await selectVideo();
+                                    nm = string.Empty;
+                                }
+                                catch (Exception ex)
+                                {
+                                    //no hagas nada
+                                }
+                            }
+                            else //cuando no se encuentre un video con la fecha actual
+                            {
+                                using (var lines = new StreamReader(ruta1))
+                                {
+                                    while ((line = lines.ReadLine()) != null) //se lee linea por linea del archivo parametros.txt y lo guarda en line
                                     {
-                                        isSaving = true;
-                                        nm = string.Empty;
-                                        for (int i = 4; i < line.Length; i++)
+                                        if (line[0] == '<' && line[1] == 'n' && line[2] == 'm' && line[3] == '>')
                                         {
-                                            if (isSaving == true)
+                                            isSaving = true;
+                                            nm = string.Empty;
+                                            for (int i = 4; i < line.Length; i++)
                                             {
-                                                if (line[i] == '<')
+                                                if (isSaving == true)
                                                 {
-                                                    isSaving = false;
-                                                }
-                                                else
-                                                {
-                                                    nm += line[i];
+                                                    if (line[i] == '<')
+                                                    {
+                                                        isSaving = false;
+                                                    }
+                                                    else
+                                                    {
+                                                        nm += line[i];
+                                                    }
                                                 }
                                             }
                                         }
-                                    }
-                                    else if (line[0] == '<' && line[1] == 'm' && line[2] == 'i' && line[3] == '>')
-                                    {
-                                        lista.Add(nm);
-                                        mi = string.Empty;
-                                        nm = string.Empty;
-                                    }
-                                    else
-                                    {
-                                        mi = string.Empty;
-                                        nm = string.Empty;
+                                        else if (line[0] == '<' && line[1] == 'm' && line[2] == 'i' && line[3] == '>')
+                                        {
+                                            lista.Add(nm);
+                                            mi = string.Empty;
+                                            nm = string.Empty;
+                                        }
+                                        else
+                                        {
+                                            mi = string.Empty;
+                                            nm = string.Empty;
+                                        }
                                     }
                                 }
-                            }
-                            mi = string.Empty;
-                            try
-                            {
-                                await selectVideo();
-                                nm = string.Empty;
-                            }
-                            catch (Exception ex)
-                            {
-                                //no hagas nada
+                                mi = string.Empty;
+                                try
+                                {
+                                    await selectVideo();
+                                    nm = string.Empty;
+                                }
+                                catch (Exception ex)
+                                {
+                                    //no hagas nada
+                                }
                             }
                         }
+                        ///////////////////////////////////////////////////////////////////
                     }
-                    ////////////////////////////////////////////////////////////////////////////////////////////////
+                }
+                catch (Exception)
+                {
+                    //no hagas nada
                 }
             }
-            catch (Exception)
+            else
             {
-                //no hagas nada
+                DirectoryInfo Di = new DirectoryInfo(path_archivos);
+                FileInfo[] Vid = Di.GetFiles("*.mp4");
+                var nameFile = Vid[0].Name;
+                //reproduzca algun video cuando el archivo parametros.txt esta vacio
+                Toast.MakeText(this, "sin videos para reproducir", ToastLength.Long).Show();
+
+                string rut_video = Path.Combine(path_archivos, nameFile);
+                if (!Video_main.IsPlaying)
+                {
+                    ctrl_lea = 0; //variable que incremen
+                    hour_enabled = true;
+                    VideoPlay(video_main, rut_video);
+                }
             }
         }
 
@@ -1000,17 +1035,15 @@ namespace monitor_inteligente
             {
                 if (CrossConnectivity.Current.IsConnected) //cuando esta conectado a wifi
                 {
-                    intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-                    StartActivity(intent);
-                    wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
-                    wakeLock.Acquire();
+                    //////intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
+                    //////StartActivity(intent);
                     StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                 }
                 else //cuando esta desconectado de wifi
                 {
-                    wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                    wake.Acquire();
-                    wake.Release();
+                    //////wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
+                    //////wake.Acquire();
+                    //////wake.Release();
                     StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                 }
             }
@@ -1020,17 +1053,17 @@ namespace monitor_inteligente
                 level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
                 if (level >= 3)
                 {
-                    intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-                    StartActivity(intent);
-                    wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
-                    wakeLock.Acquire();
+                    //////intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
+                    //////StartActivity(intent);
+                    //////wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
+                    //////wakeLock.Acquire();
                     StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                 }
                 else
                 {
-                    wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                    wake.Acquire();
-                    wake.Release();
+                    //////wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
+                    //////wake.Acquire();
+                    //////wake.Release();
                     StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
                 }
             }
@@ -1062,7 +1095,7 @@ namespace monitor_inteligente
             {
                 recorre = 0;
             }
-            else if (recorre == lista.Count)
+            else if (recorre > lista.Count)
             {
                 recorre = 0;
                 lista.Clear(); //reinicia la lista 
@@ -1078,21 +1111,14 @@ namespace monitor_inteligente
                 video_main.SetOnCompletionListener(new VideoLoop1(video_main, lista, recorre, intent, this.ApplicationContext));
                 if (!video_main.IsPlaying)
                 {
-                    try
-                    {
-                        video_main.SetVideoPath(ruta);
-                        video_main.RequestFocus(); 
-                        video_main.Start();
-                    }
-                    catch (Exception ex)
-                    {
-                        Toast.MakeText(this, "no se puede reproducir video", ToastLength.Long).Show();
-                    }
+                    video_main.SetVideoPath(ruta);
+                    video_main.RequestFocus(); 
+                    video_main.Start();
                 }
             }
             catch (Exception ex)
             {
-                //no hagas nada
+                Toast.MakeText(this, "no se puede reproducir video", ToastLength.Long).Show();
             }
         }
 
@@ -1168,6 +1194,7 @@ namespace monitor_inteligente
                         else
                         {
                             await ReadFile();
+                            //await selectVideo();
                         }
                     }
                 }
@@ -1180,203 +1207,150 @@ namespace monitor_inteligente
             async Task ReadFile()
             {
                 await stayalert();
-                try
+
+                FileInfo Fi = new FileInfo(ruta2);
+                if (Fi.Length != 0)
                 {
-                    date = DateTime.Today;
-                    dia = date.Day.ToString();
-                    mes = date.Month.ToString();
-                    año = date.Year.ToString();
-                    fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
-                    hour_enabled = true;
-                    playing = false;
-                    hi = string.Empty;
-                    hf = string.Empty;
-                    ctrl = 0;
-                    DirectoryInfo dataDir = new DirectoryInfo(path_archivos);
-                    FileInfo[] v = dataDir.GetFiles("*.mp4");
-                    FileInfo[] f = dataDir.GetFiles("*.txt");
-                    var tam = v.Length;
-                    var tam1 = f.Length;
-                    if (tam != 0 && tam1 != 0)
+                    try
                     {
-                        nom1 = f[0].Name; //nombre del archivo txt
-                        string rut_archivo = Path.Combine(path_archivos, nom1); //ruta del archivo de los parametros
-                        string line = string.Empty; //se declara variable que almacene linea por linea
-                        ctrl_lectura = 0;
-                        ctrl_lea = 0;
-                        ctrl = 0;
-                        id = string.Empty;
-                        nm = string.Empty;
+                        date = DateTime.Today;
+                        dia = date.Day.ToString();
+                        mes = date.Month.ToString();
+                        año = date.Year.ToString();
+                        fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
+                        hour_enabled = true;
+                        playing = false;
                         hi = string.Empty;
                         hf = string.Empty;
-                        ca = string.Empty;
-                        using (var lines = new StreamReader(rut_archivo))
+                        ctrl = 0;
+                        DirectoryInfo dataDir = new DirectoryInfo(path_archivos);
+                        FileInfo[] v = dataDir.GetFiles("*.mp4");
+                        FileInfo[] f = dataDir.GetFiles("*.txt");
+                        var tam = v.Length;
+                        var tam1 = f.Length;
+                        if (tam != 0 && tam1 != 0)
                         {
-                            conteo_lineas = File.ReadAllLines(rut_archivo).Length; //obtiene el numero de lineas disponibles en el archivo
-                            while ((line = lines.ReadLine()) != null) //se lee linea por linea del archivo parametros.txt y lo guarda en line
+                            nom1 = f[0].Name; //nombre del archivo txt
+                            string rut_archivo = Path.Combine(path_archivos, nom1); //ruta del archivo de los parametros
+                            string line = string.Empty; //se declara variable que almacene linea por linea
+                            ctrl_lectura = 0;
+                            ctrl_lea = 0;
+                            ctrl = 0;
+                            id = string.Empty;
+                            nm = string.Empty;
+                            hi = string.Empty;
+                            hf = string.Empty;
+                            ca = string.Empty;
+                            using (var lines = new StreamReader(rut_archivo))
                             {
-                                if (line[0] == '<' && line[1] == 'i' && line[2] == 'd' && line[3] == '>')
+                                conteo_lineas = File.ReadAllLines(rut_archivo).Length; //obtiene el numero de lineas disponibles en el archivo
+                                while ((line = lines.ReadLine()) != null) //se lee linea por linea del archivo parametros.txt y lo guarda en line
                                 {
-                                    ctrl_lea++;
-                                    ctrl++;
-                                    isSaving = true;
-                                    id = string.Empty;
-                                    for (int i = 4; i < line.Length; i++)
+                                    if (line[0] == '<' && line[1] == 'i' && line[2] == 'd' && line[3] == '>')
                                     {
-                                        if (isSaving == true)
-                                        {
-                                            if (line[i] == '<')
-                                            {
-                                                isSaving = false;
-                                            }
-                                            else
-                                            {
-                                                id += line[i];
-                                            }
-                                        }
-                                    }
-                                }
-                                else if (line[0] == '<' && line[1] == 'n' && line[2] == 'm' && line[3] == '>')
-                                {
-                                    ctrl_lea++;
-                                    ctrl++;
-                                    isSaving = true;
-                                    nm = string.Empty;
-                                    for (int i = 4; i < line.Length; i++)
-                                    {
-                                        if (isSaving == true)
-                                        {
-                                            if (line[i] == '<')
-                                            {
-                                                isSaving = false;
-                                            }
-                                            else
-                                            {
-                                                nm += line[i];
-                                            }
-                                        }
-                                    }
-                                }
-                                else if (line[0] == '<' && line[1] == 'h' && line[2] == 'i' && line[3] == '>')
-                                {
-                                    ctrl_lea++;
-                                    ctrl++;
-                                    isSaving = true;
-                                    hi = string.Empty;
-                                    for (int i = 4; i < line.Length; i++)
-                                    {
-                                        if (isSaving == true)
-                                        {
-                                            if (line[i] == '<')
-                                            {
-                                                isSaving = false;
-                                            }
-                                            else
-                                            {
-                                                hi += line[i];
-                                                Thread.Sleep(100);
-                                            }
-                                        }
-                                    }
-                                }
-                                else if (line[0] == '<' && line[1] == 'h' && line[2] == 'f' && line[3] == '>')
-                                {
-                                    ctrl_lea++;
-                                    ctrl++;
-                                    isSaving = true;
-                                    hf = string.Empty;
-                                    for (int i = 4; i < line.Length; i++)
-                                    {
-                                        if (isSaving == true)
-                                        {
-                                            if (line[i] == '<')
-                                            {
-                                                isSaving = false;
-                                            }
-                                            else
-                                            {
-                                                hf += line[i];
-                                                Thread.Sleep(100);
-                                            }
-                                        }
-                                    }
-                                }
-                                else if (line[0] == '<' && line[1] == 'c' && line[2] == 'a' && line[3] == '>')
-                                {
-                                    ctrl_lea++;
-                                    ctrl++;
-                                    isSaving = true;
-                                    ca = string.Empty;
-                                    for (int i = 4; i < line.Length; i++)
-                                    {
-                                        if (isSaving == true)
-                                        {
-                                            if (line[i] == '<')
-                                            {
-                                                isSaving = false;
-                                            }
-                                            else
-                                            {
-                                                ca += line[i];
-                                            }
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    id = string.Empty;
-                                    nm = string.Empty;
-                                    hi = string.Empty;
-                                    hf = string.Empty;
-                                    ca = string.Empty;
-                                    ctrl_lea++;
-                                    ctrl = 0;
-                                }
-
-                                if (ctrl >= 5)
-                                {
-                                    ctrl = 0;
-                                    time = DateTime.Now.ToLocalTime();
-                                    hora = time.Hour.ToString();
-                                    min = time.Minute.ToString();
-                                    hora_actual = Convert.ToInt32(hora);
-                                    string hora_actual1 = hora + ":" + min;
-                                    hi_aux = Convert.ToInt32(hi);
-                                    hf_aux = Convert.ToInt32(hf);
-                                    min_aux = Convert.ToInt32(min);
-
-                                    if (ca == fecha_actual && (hora_actual >= hi_aux && hora_actual < hf_aux)) // si el archivo tiene la fecha actual y la hora actual esta dentro del rango que muestra ese archivo, entonces reproduce el video
-                                    {
-                                        lista2.Clear(); //aca
+                                        ctrl_lea++;
+                                        ctrl++;
+                                        isSaving = true;
                                         id = string.Empty;
-                                        hi = string.Empty;
-                                        hf = string.Empty;
-                                        ca = string.Empty;
-                                        ctrl_lea = 0;
-                                        try
+                                        for (int i = 4; i < line.Length; i++)
                                         {
-                                            string rut_video = Path.Combine(path_archivos, nm); //toma ruta del video
-                                            if (File.Exists(rut_video))
+                                            if (isSaving == true)
                                             {
-                                                if (!localVideoView.IsPlaying)
+                                                if (line[i] == '<')
                                                 {
-                                                    aux_nm = nm;
-                                                    ctrl_lea = 0; //variable que incremen
-                                                    hour_enabled = true;
-                                                    VideoPlay(localVideoView, rut_video);
+                                                    isSaving = false;
+                                                }
+                                                else
+                                                {
+                                                    id += line[i];
                                                 }
                                             }
-                                            else
-                                            {
-                                                Toast.MakeText(Application.Context, "no hay videos para rerpoducir", ToastLength.Long).Show();
-                                                //Toast.MakeText(Application.Context, "reproduciendo otro video", ToastLength.Long).Show();
-                                                //rut_video = Path.Combine(path_archivos, aux_nm); //toma ruta del video
-                                            }
-                                            nm = string.Empty;
                                         }
-                                        catch (Exception ex)
+                                    }
+                                    else if (line[0] == '<' && line[1] == 'n' && line[2] == 'm' && line[3] == '>')
+                                    {
+                                        ctrl_lea++;
+                                        ctrl++;
+                                        isSaving = true;
+                                        nm = string.Empty;
+                                        for (int i = 4; i < line.Length; i++)
                                         {
-                                            //no hagas nada
+                                            if (isSaving == true)
+                                            {
+                                                if (line[i] == '<')
+                                                {
+                                                    isSaving = false;
+                                                }
+                                                else
+                                                {
+                                                    nm += line[i];
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else if (line[0] == '<' && line[1] == 'h' && line[2] == 'i' && line[3] == '>')
+                                    {
+                                        ctrl_lea++;
+                                        ctrl++;
+                                        isSaving = true;
+                                        hi = string.Empty;
+                                        for (int i = 4; i < line.Length; i++)
+                                        {
+                                            if (isSaving == true)
+                                            {
+                                                if (line[i] == '<')
+                                                {
+                                                    isSaving = false;
+                                                }
+                                                else
+                                                {
+                                                    hi += line[i];
+                                                    Thread.Sleep(100);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else if (line[0] == '<' && line[1] == 'h' && line[2] == 'f' && line[3] == '>')
+                                    {
+                                        ctrl_lea++;
+                                        ctrl++;
+                                        isSaving = true;
+                                        hf = string.Empty;
+                                        for (int i = 4; i < line.Length; i++)
+                                        {
+                                            if (isSaving == true)
+                                            {
+                                                if (line[i] == '<')
+                                                {
+                                                    isSaving = false;
+                                                }
+                                                else
+                                                {
+                                                    hf += line[i];
+                                                    Thread.Sleep(100);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else if (line[0] == '<' && line[1] == 'c' && line[2] == 'a' && line[3] == '>')
+                                    {
+                                        ctrl_lea++;
+                                        ctrl++;
+                                        isSaving = true;
+                                        ca = string.Empty;
+                                        for (int i = 4; i < line.Length; i++)
+                                        {
+                                            if (isSaving == true)
+                                            {
+                                                if (line[i] == '<')
+                                                {
+                                                    isSaving = false;
+                                                }
+                                                else
+                                                {
+                                                    ca += line[i];
+                                                }
+                                            }
                                         }
                                     }
                                     else
@@ -1386,189 +1360,261 @@ namespace monitor_inteligente
                                         hi = string.Empty;
                                         hf = string.Empty;
                                         ca = string.Empty;
+                                        ctrl_lea++;
                                         ctrl = 0;
                                     }
-                                }
-                            }
-                        }
-                        if (conteo_lineas == ctrl_lea)
-                        {
-                            conteo_lineas = 0;
-                            ctrl_lea = 0;
-                            hour_enabled = false; //si no encuentra reproduccion por horas
-                            //await ReadFile(); //LINEA NUEVA
-                            //poner alguna rutina que reproduzca algun video cuando en el archivo no se encuentra alguno con la fecha de hoy
-                        }
 
-                        if (hour_enabled == false)
-                        {
-                            ctrl = 0;
-                            id = string.Empty;
-                            nm = string.Empty;
-                            mi = string.Empty;
-                            ca = string.Empty;
-                            /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                            //obtiene los nombres de los videos para almacenarlos en una lista
-                            ///////////////////// si no encuentra videos por horas empieza a buscar por minutos ///////////////
-                            if (lista2.Count == 0)
-                            {
-                                using (var lines = new StreamReader(rut_archivo))
-                                {
-                                    while ((line = lines.ReadLine()) != null) //se lee linea por linea del archivo parametros.txt y lo guarda en line
+                                    if (ctrl >= 5)
                                     {
-                                        if (line[0] == '<' && line[1] == 'n' && line[2] == 'm' && line[3] == '>')
+                                        ctrl = 0;
+                                        time = DateTime.Now.ToLocalTime();
+                                        hora = time.Hour.ToString();
+                                        min = time.Minute.ToString();
+                                        hora_actual = Convert.ToInt32(hora);
+                                        string hora_actual1 = hora + ":" + min;
+                                        hi_aux = Convert.ToInt32(hi);
+                                        hf_aux = Convert.ToInt32(hf);
+                                        min_aux = Convert.ToInt32(min);
+
+                                        if (ca == fecha_actual && (hora_actual >= hi_aux && hora_actual < hf_aux)) // si el archivo tiene la fecha actual y la hora actual esta dentro del rango que muestra ese archivo, entonces reproduce el video
                                         {
-                                            isSaving = true;
-                                            nm = string.Empty;
-                                            for (int i = 4; i < line.Length; i++)
-                                            {
-                                                if (isSaving == true)
-                                                {
-                                                    if (line[i] == '<')
-                                                    {
-                                                        isSaving = false;
-                                                    }
-                                                    else
-                                                    {
-                                                        nm += line[i];
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        else if (line[0] == '<' && line[1] == 'm' && line[2] == 'i' && line[3] == '>')
-                                        {
-                                            isSaving = true;
-                                            mi = string.Empty;
-                                            for (int i = 4; i < line.Length; i++)
-                                            {
-                                                if (isSaving == true)
-                                                {
-                                                    if (line[i] == '<')
-                                                    {
-                                                        isSaving = false;
-                                                    }
-                                                    else
-                                                    {
-                                                        mi += line[i];
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        else if (line[0] == '<' && line[1] == 'c' && line[2] == 'a' && line[3] == '>')
-                                        {
-                                            isSaving = true;
+                                            lista2.Clear(); //aca
+                                            id = string.Empty;
+                                            hi = string.Empty;
+                                            hf = string.Empty;
                                             ca = string.Empty;
-                                            for (int i = 4; i < line.Length; i++)
+                                            ctrl_lea = 0;
+                                            try
                                             {
-                                                if (isSaving == true)
+                                                string rut_video = Path.Combine(path_archivos, nm); //toma ruta del video
+                                                if (File.Exists(rut_video))
                                                 {
-                                                    if (line[i] == '<')
+                                                    if (!localVideoView.IsPlaying)
                                                     {
-                                                        isSaving = false;
-                                                    }
-                                                    else
-                                                    {
-                                                        ca += line[i];
+                                                        aux_nm = nm;
+                                                        ctrl_lea = 0; //variable que incremen
+                                                        hour_enabled = true;
+                                                        VideoPlay(localVideoView, rut_video);
                                                     }
                                                 }
-                                            }
-                                            if (/*ca == fecha_actual &&*/ mi != string.Empty)
-                                            {
-                                                lista2.Add(nm);
-                                                mi = string.Empty;
+                                                else
+                                                {
+                                                    Toast.MakeText(Application.Context, "no hay videos para rerpoducir", ToastLength.Long).Show();
+                                                    //Toast.MakeText(Application.Context, "reproduciendo otro video", ToastLength.Long).Show();
+                                                    //rut_video = Path.Combine(path_archivos, aux_nm); //toma ruta del video
+                                                }
                                                 nm = string.Empty;
-                                                ca = string.Empty;
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                //no hagas nada
                                             }
                                         }
                                         else
                                         {
-                                            mi = string.Empty;
+                                            id = string.Empty;
                                             nm = string.Empty;
+                                            hi = string.Empty;
+                                            hf = string.Empty;
                                             ca = string.Empty;
+                                            ctrl = 0;
                                         }
                                     }
                                 }
                             }
-                            ///////////////////////////////////////////////////////////////
-                            if (lista2.Count != 0)
+                            if (conteo_lineas == ctrl_lea)
                             {
-                                if (lista2.Count == 1)
-                                {
-                                    recorre = 0;
-                                }
+                                conteo_lineas = 0;
+                                ctrl_lea = 0;
+                                hour_enabled = false; //si no encuentra reproduccion por horas
+                                //await ReadFile(); //LINEA NUEVA
+                                //poner alguna rutina que reproduzca algun video cuando en el archivo no se encuentra alguno con la fecha de hoy
+                            }
+
+                            if (hour_enabled == false)
+                            {
                                 ctrl = 0;
                                 id = string.Empty;
                                 nm = string.Empty;
                                 mi = string.Empty;
                                 ca = string.Empty;
-                                try
+                                /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+                                //obtiene los nombres de los videos para almacenarlos en una lista
+                                ///////////////////// si no encuentra videos por horas empieza a buscar por minutos ///////////////
+                                if (lista2.Count == 0)
                                 {
-                                    await selectVideo(); //por aca
-                                    nm = string.Empty;
-                                }
-                                catch (Exception ex)
-                                {
-                                    //no hagas nada
-                                }
-                            }
-                            else //cuando no se encuentre un video con la fecha actual
-                            {
-                                using (var lines = new StreamReader(ruta2))
-                                {
-                                    while ((line = lines.ReadLine()) != null) //se lee linea por linea del archivo parametros.txt y lo guarda en line
+                                    using (var lines = new StreamReader(rut_archivo))
                                     {
-                                        if (line[0] == '<' && line[1] == 'n' && line[2] == 'm' && line[3] == '>')
+                                        while ((line = lines.ReadLine()) != null) //se lee linea por linea del archivo parametros.txt y lo guarda en line
                                         {
-                                            isSaving = true;
-                                            nm = string.Empty;
-                                            for (int i = 4; i < line.Length; i++)
+                                            if (line[0] == '<' && line[1] == 'n' && line[2] == 'm' && line[3] == '>')
                                             {
-                                                if (isSaving == true)
+                                                isSaving = true;
+                                                nm = string.Empty;
+                                                for (int i = 4; i < line.Length; i++)
                                                 {
-                                                    if (line[i] == '<')
+                                                    if (isSaving == true)
                                                     {
-                                                        isSaving = false;
-                                                    }
-                                                    else
-                                                    {
-                                                        nm += line[i];
+                                                        if (line[i] == '<')
+                                                        {
+                                                            isSaving = false;
+                                                        }
+                                                        else
+                                                        {
+                                                            nm += line[i];
+                                                        }
                                                     }
                                                 }
                                             }
-                                        }
-                                        else if (line[0] == '<' && line[1] == 'm' && line[2] == 'i' && line[3] == '>')
-                                        {
-                                            lista2.Add(nm);
-                                            mi = string.Empty;
-                                            nm = string.Empty;
-                                        }
-                                        else
-                                        {
-                                            mi = string.Empty;
-                                            nm = string.Empty;
+                                            else if (line[0] == '<' && line[1] == 'm' && line[2] == 'i' && line[3] == '>')
+                                            {
+                                                isSaving = true;
+                                                mi = string.Empty;
+                                                for (int i = 4; i < line.Length; i++)
+                                                {
+                                                    if (isSaving == true)
+                                                    {
+                                                        if (line[i] == '<')
+                                                        {
+                                                            isSaving = false;
+                                                        }
+                                                        else
+                                                        {
+                                                            mi += line[i];
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            else if (line[0] == '<' && line[1] == 'c' && line[2] == 'a' && line[3] == '>')
+                                            {
+                                                isSaving = true;
+                                                ca = string.Empty;
+                                                for (int i = 4; i < line.Length; i++)
+                                                {
+                                                    if (isSaving == true)
+                                                    {
+                                                        if (line[i] == '<')
+                                                        {
+                                                            isSaving = false;
+                                                        }
+                                                        else
+                                                        {
+                                                            ca += line[i];
+                                                        }
+                                                    }
+                                                }
+                                                if (/*ca == fecha_actual &&*/ mi != string.Empty)
+                                                {
+                                                    lista2.Add(nm);
+                                                    mi = string.Empty;
+                                                    nm = string.Empty;
+                                                    ca = string.Empty;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                mi = string.Empty;
+                                                nm = string.Empty;
+                                                ca = string.Empty;
+                                            }
                                         }
                                     }
                                 }
-                                mi = string.Empty;
-                                try
+                                ///////////////////////////////////////////////////////////////
+                                if (lista2.Count != 0)
                                 {
-                                    await selectVideo();
+                                    if (lista2.Count == 1)
+                                    {
+                                        recorre = 0;
+                                    }
+                                    ctrl = 0;
+                                    id = string.Empty;
                                     nm = string.Empty;
+                                    mi = string.Empty;
+                                    ca = string.Empty;
+                                    try
+                                    {
+                                        await selectVideo(); //por aca
+                                        nm = string.Empty;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        //no hagas nada
+                                    }
                                 }
-                                catch (Exception ex)
+                                else //cuando no se encuentre un video con la fecha actual
                                 {
-                                    //no hagas nada
+                                    using (var lines = new StreamReader(ruta2))
+                                    {
+                                        while ((line = lines.ReadLine()) != null) //se lee linea por linea del archivo parametros.txt y lo guarda en line
+                                        {
+                                            if (line[0] == '<' && line[1] == 'n' && line[2] == 'm' && line[3] == '>')
+                                            {
+                                                isSaving = true;
+                                                nm = string.Empty;
+                                                for (int i = 4; i < line.Length; i++)
+                                                {
+                                                    if (isSaving == true)
+                                                    {
+                                                        if (line[i] == '<')
+                                                        {
+                                                            isSaving = false;
+                                                        }
+                                                        else
+                                                        {
+                                                            nm += line[i];
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            else if (line[0] == '<' && line[1] == 'm' && line[2] == 'i' && line[3] == '>')
+                                            {
+                                                lista2.Add(nm);
+                                                mi = string.Empty;
+                                                nm = string.Empty;
+                                            }
+                                            else
+                                            {
+                                                mi = string.Empty;
+                                                nm = string.Empty;
+                                            }
+                                        }
+                                    }
+                                    mi = string.Empty;
+                                    try
+                                    {
+                                        await selectVideo();
+                                        nm = string.Empty;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        //no hagas nada
+                                    }
                                 }
                             }
+                            /////////////////////////////////////////////////////////////////////
                         }
-                        /////////////////////////////////////////////////////////////////////
+                    }
+                    catch (Exception)
+                    {
+                        //no hagas nada
+                    } 
+                }
+                else
+                {
+                    DirectoryInfo Di = new DirectoryInfo(path_archivos);
+                    FileInfo[] Vid = Di.GetFiles("*.mp4");
+                    var nameFile = Vid[0].Name;
+                    //reproduzca algun video cuando el archivo parametros.txt esta vacio
+                    Toast.MakeText(context, "sin videos para reproducir", ToastLength.Long).Show();
+                    string rut_video = Path.Combine(path_archivos, nameFile);
+                    if (!localVideoView.IsPlaying)
+                    {
+                        ctrl_lea = 0; //variable que incremen
+                        hour_enabled = true;
+                        VideoPlay(localVideoView, rut_video);
                     }
                 }
-                catch (Exception)
-                {
-                    //no hagas nada
-                }
-
             }
 
             async Task stayalert()
@@ -1578,17 +1624,15 @@ namespace monitor_inteligente
                 {
                     if (CrossConnectivity.Current.IsConnected)
                     {
-                        inten = context.PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-                        context.StartActivity(inten);
-                        wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
-                        wakeLock.Acquire();
+                        //////inten = context.PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
+                        //////context.StartActivity(inten);
                         context.StartService(new Intent(context, typeof(BackgroundService))); //AGREGADO
                     }
                     else
                     {
-                        wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                        wake.Acquire();
-                        wake.Release();
+                        //////wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
+                        //////wake.Acquire();
+                        //////wake.Release();
                         context.StopService(new Intent(context, typeof(BackgroundService))); //AGREGADO
                     }
                 }
@@ -1596,17 +1640,17 @@ namespace monitor_inteligente
                 {
                     if (CrossConnectivity.Current.IsConnected)
                     {
-                        inten = context.PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-                        context.StartActivity(inten);
-                        wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
-                        wakeLock.Acquire();
+                        //////inten = context.PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
+                        //////context.StartActivity(inten);
+                        //////wakeLock = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
+                        //////wakeLock.Acquire();
                         context.StartService(new Intent(context, typeof(BackgroundService))); //AGREGADO
                     }
                     else
                     {
-                        wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                        wake.Acquire();
-                        wake.Release();
+                        //////wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
+                        //////wake.Acquire();
+                        //////wake.Release();
                         context.StopService(new Intent(context, typeof(BackgroundService))); //AGREGADO
                     }
                 }
@@ -1639,7 +1683,7 @@ namespace monitor_inteligente
                 {
                     recorre = 0;
                 }
-                else if (recorre == lista2.Count)
+                else if (recorre > lista2.Count)
                 {
                     recorre = 0;
                     lista2.Clear(); //reinicia la lista 
@@ -1654,21 +1698,14 @@ namespace monitor_inteligente
                     video_main.SetOnPreparedListener(new VideoLoop());
                     if (!video_main.IsPlaying)
                     {
-                        try
-                        {
-                            video_main.SetVideoPath(ruta);
-                            video_main.RequestFocus();
-                            video_main.Start(); //problemas cuando se reproduce el video por segunda vez
-                        }
-                        catch (Exception ex)
-                        {
-                            Toast.MakeText(Application.Context, "no se puede reproduccir el video", ToastLength.Long).Show();
-                        }
+                        video_main.SetVideoPath(ruta);
+                        video_main.RequestFocus();
+                        video_main.Start(); //problemas cuando se reproduce el video por segunda vez
                     }
                 }
                 catch (Exception ex)
                 {
-                    //no hagas nada
+                    Toast.MakeText(Application.Context, "no se puede reproduccir el video", ToastLength.Long).Show();
                 }
             }
         }
