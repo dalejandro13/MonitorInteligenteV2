@@ -61,16 +61,16 @@ namespace Hoho.Android.UsbSerial.Examples
 		{
 			
 			// aapt resource value: 0x7f060006
-			public const int consoleText = 2131099654;
-			
-			// aapt resource value: 0x7f060005
-			public const int demoScroller = 2131099653;
+			public const int btnSending = 2131099654;
 			
 			// aapt resource value: 0x7f060001
 			public const int demoTitle = 2131099649;
 			
 			// aapt resource value: 0x7f060004
 			public const int deviceList = 2131099652;
+			
+			// aapt resource value: 0x7f060005
+			public const int edtMes = 2131099653;
 			
 			// aapt resource value: 0x7f060002
 			public const int progressBar = 2131099650;
@@ -80,6 +80,9 @@ namespace Hoho.Android.UsbSerial.Examples
 			
 			// aapt resource value: 0x7f060003
 			public const int separator = 2131099651;
+			
+			// aapt resource value: 0x7f060007
+			public const int separator2 = 2131099655;
 			
 			static Id()
 			{
@@ -117,7 +120,10 @@ namespace Hoho.Android.UsbSerial.Examples
 			public const int app_name = 2131034112;
 			
 			// aapt resource value: 0x7f050001
-			public const int refreshing = 2131034113;
+			public const int m1 = 2131034113;
+			
+			// aapt resource value: 0x7f050002
+			public const int refreshing = 2131034114;
 			
 			static String()
 			{

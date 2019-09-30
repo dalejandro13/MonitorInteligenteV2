@@ -52,13 +52,16 @@ namespace Hoho.Android.UsbSerial.Examples
         
         public Intent intent, intento; //new line
         bool activateSleep; //new line
+        string trama;
         UsbManager usbManager;
 		TextView titleTextView;
-		TextView dumpTextView;
-		ScrollView scrollView;
+        EditText frame;
+        Button send; //new line
         PowerManager pm;
         WakeLock wake;
-
+        //RadioGroup rg;
+        //RadioButton r1, r2, r3;
+       
 		SerialInputOutputManager serialIoManager;
 
 		protected override void OnCreate(Bundle bundle)
@@ -71,15 +74,49 @@ namespace Hoho.Android.UsbSerial.Examples
 
 			usbManager = GetSystemService(Context.UsbService) as UsbManager;
 			titleTextView = FindViewById<TextView>(Resource.Id.demoTitle);
-			dumpTextView = FindViewById<TextView>(Resource.Id.consoleText);
-			scrollView = FindViewById<ScrollView>(Resource.Id.demoScroller);
-
-            pm = (PowerManager)GetSystemService(Context.PowerService); //new line
-            wake = pm.NewWakeLock(WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "stay awake gently"); //new line
-            activateSleep = true; //new line
+            frame = FindViewById<EditText>(Resource.Id.edtMes);
+            send = FindViewById<Button>(Resource.Id.btnSending);
+            //rg = FindViewById<RadioGroup>(Resource.Id.rgrp);
+            //rg = FindViewById<RadioGroup>(Resource.Id.rgrp);
+            //r1 = FindViewById<RadioButton>(Resource.Id.rbtn1);
+            //r2 = FindViewById<RadioButton>(Resource.Id.rbtn2);
+            //r3 = FindViewById<RadioButton>(Resource.Id.rbtn3);
+            send.Click += ClickButton; //linea agregada
         }
 
-		protected override void OnPause ()
+        async Task SendRadio()
+        {
+            //continua por aca
+        }
+
+        ////////////////////////////Metodo agregado/////////////////////////////
+        private void ClickButton(object sender, EventArgs e)
+        {
+            //AlertDialog.Builder alert = new AlertDialog.Builder(this);
+            //alert.SetTitle("Advertencia");
+            //alert.SetMessage("Desea bloquear el dispositivo?");
+            //alert.SetPositiveButton("Bloquear", (senderAlert, args) => {
+            //    intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
+            //    StartActivity(intent);
+            //});
+
+            //alert.SetNegativeButton("Cancelar", (senderAlert, args) => {
+                
+            //});
+            //Dialog dialog = alert.Create();
+            //dialog.Window.Attributes.X = 34;
+            //dialog.Window.Attributes.Y = -105;
+            //dialog.Show();
+
+            if (!string.IsNullOrEmpty(frame.Text) || !string.IsNullOrWhiteSpace(frame.Text))
+            {
+                trama = frame.Text;
+                serialIoManager.SendingMessage(trama);
+            }
+        }
+        //////////////////////////////////////////////////////////////////////////
+
+        protected override void OnPause ()
 		{
 			Log.Info (TAG, "OnPause");
 
@@ -159,26 +196,9 @@ namespace Hoho.Android.UsbSerial.Examples
 		{
             try
             {
-                if (activateSleep == true)
-                {
-                    wake.Acquire();
-                    intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-                    StartActivity(intent);
-                    activateSleep = false;
-                }
-                var connectManager = (ConnectivityManager)Application.Context.GetSystemService(Context.ConnectivityService);
-                NetworkInfo networkInfo = connectManager.ActiveNetworkInfo;
-                if (networkInfo != null && networkInfo.IsConnected)
-                {
-                    var message = HexDump.DumpHexString(data) + "\n\n";
-                    dumpTextView.Append(message);
-                    scrollView.SmoothScrollTo(0, dumpTextView.Bottom);
-                }
-                else
-                {
-                    intent = PackageManager.GetLaunchIntentForPackage("com.flexo.MonitorInteligente");
-                    StartActivity(intent);
-                }
+                var message = HexDump.DumpHexString(data) + "\n\n"; //dato llega por serial
+                //dumpTextView.Append(message);
+                //scrollView.SmoothScrollTo(0, dumpTextView.Bottom);
             }
             catch (Exception ex)
             {

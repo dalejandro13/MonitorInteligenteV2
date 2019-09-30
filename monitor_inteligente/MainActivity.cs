@@ -28,7 +28,7 @@ using static Android.App.ActivityManager;
 using System.Timers;
 using Android.Hardware.Usb;
 
-namespace monitor_inteligente
+namespace monitor_inteligente //3012939975 //3017256581
 {
     //190.70.19.54
     [Activity(Label = "@string/app_name", Theme = "@style/AppTheme", MainLauncher = true)]
@@ -38,7 +38,7 @@ namespace monitor_inteligente
         string ruta1 = Android.OS.Environment.GetExternalStoragePublicDirectory(Android.OS.Environment.DirectoryMovies).ToString() + "/archivos/parametros.txt";
         string path_archivos = Android.OS.Environment.GetExternalStoragePublicDirectory(Android.OS.Environment.DirectoryMovies).ToString() + "/archivos";
         int ctrl = 0, hora_actual = 0, hi_aux = 0, hf_aux = 0, ctrl_lectura = 0, ctrl_lea = 0, conteo_lineas = 0, min_aux = 0, desconect = 0, level = 0, rompe = 0;
-        bool isSaving = false, ctrlWifi = true, hour_enabled = true, playing = false, trydownload = false, offline = true, cicleactive = false, enableInternet = false;
+        bool isSaving = false, ctrlWifi = true, hour_enabled = true, playing = false, trydownload = false, offline = true, cicleactive = false, enableInternet = false, connect;
         public double bytesIn = 0, percentage = 0;
         string id, nm, hi, hf, ca, mi, nom1, dia, mes, año, fecha_actual, hora, min, aux_nm, aux_name;
         public string linea1;
@@ -89,6 +89,14 @@ namespace monitor_inteligente
             base.OnCreate(savedInstanceState);
             // Set our view from the "main" layout resource
             SetContentView(Resource.Layout.activity_main);
+
+            var newUiOptions = (int)Window.DecorView.SystemUiVisibility;
+            newUiOptions |= (int)SystemUiFlags.LowProfile;
+            newUiOptions |= (int)SystemUiFlags.Fullscreen;
+            newUiOptions |= (int)SystemUiFlags.HideNavigation;
+            newUiOptions |= (int)SystemUiFlags.ImmersiveSticky;
+            Window.DecorView.SystemUiVisibility = (StatusBarVisibility)newUiOptions;
+
             SupportActionBar.SetDisplayShowTitleEnabled(false); //quita el titulo de action bar
             SupportActionBar.Hide(); //quita el action bar            
             Video_main = FindViewById<VideoView>(Resource.Id.video_main);
@@ -102,38 +110,36 @@ namespace monitor_inteligente
             wifi = (WifiManager)GetSystemService(Android.Content.Context.WifiService); //obtiene los servicios de wifi
             await Folder();
             enableInternet = false;
-            //Task.Run(async () => await CheckForInternetConnection());
+            connect = await CheckForInternetConnection();
             //await CheckForInternetConnection(); //AGREGADO
-
-            if (wifi.IsWifiEnabled)
+            //connect = await CheckForInternetConnection();
+            if (connect)
             {
                 while (ctrlWifi)
                 {
                     //Thread.Sleep(5000);
-                    wifiinfo = wifi.ConnectionInfo;
-                    level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11);
-                    if (level >= 3)
+                    //wifiinfo = wifi.ConnectionInfo;
+                    //level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11);
+                    connect = await CheckForInternetConnection();
+                    if (connect) //level >= 3
                     {
                         cicleactive = true;
                         await Download();
-                        if (CrossConnectivity.Current.IsConnected) //verifica nuevamente si hay conexion con internet 
+                        connect = await CheckForInternetConnection();
+                        if (connect == true) //verifica nuevamente si hay conexion con internet 
                         {
                             enableInternet = true; //AGREGADO
-                            //await CheckForInternetConnection(); //AGREGADO
-                            //////intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-                            //////StartActivity(intent);
-                            StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                            if (!IsMyServiceRunning(typeof(BackgroundService)))
+                            {
+                                StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                            }
                         }
                         else
                         {
                             enableInternet = false; //AGREGADO
-                            //await CheckForInternetConnection(); //AGREGADO
                             cicleactive = false;
-                            //////pm = (PowerManager)GetSystemService(Context.PowerService);
-                            //////wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                            //////wakeLock.Acquire();
-                            //////wakeLock.Release();
                             StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                            await WakeUpdevice();
                             await ReadFile(); //AGREGADO
                         }
                     }
@@ -159,9 +165,10 @@ namespace monitor_inteligente
                 {
                     if (CrossConnectivity.Current.ConnectionTypes.Contains(ConnectionType.WiFi)) //si se pierde la conexion pero el wifi todavia funciona
                     {
-                        wifiinfo = wifi.ConnectionInfo;
-                        level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
-                        if (level < 3)
+                        //wifiinfo = wifi.ConnectionInfo;
+                        //level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
+                        connect = await CheckForInternetConnection();
+                        if (connect == false) //level < 3
                         {
                             enableInternet = false;
                             //await CheckForInternetConnection(); //AGREGADO
@@ -170,11 +177,8 @@ namespace monitor_inteligente
                             level = 0;
                             Toast.MakeText(this, "conexion perdida con wifi", ToastLength.Long).Show();
                             ctrlWifi = false;
-                            //////pm = (PowerManager)GetSystemService(Context.PowerService);
-                            //////wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                            //////wakeLock.Acquire();
-                            //////wakeLock.Release();
                             StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                            await WakeUpdevice();
                             await ReadFile(); //AGREGADO
                         }
                     }
@@ -186,32 +190,28 @@ namespace monitor_inteligente
                         ctrlWifi = true;
                         while (ctrlWifi)
                         {
-                            Thread.Sleep(5000);
-                            wifiinfo = wifi.ConnectionInfo;
-                            level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
-                            if (level >= 3)
+                            Thread.Sleep(3000);
+                            //wifiinfo = wifi.ConnectionInfo;
+                            //level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
+                            connect = await CheckForInternetConnection();
+                            if (connect) //level >= 3
                             {
                                 cicleactive = true;
                                 offline = true;
                                 await Download(); //cuando hay conexion a internet por wifi, inicia proceso para la descarga de archivos
-                                //////intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-                                //////StartActivity(intent); //el dispositivo entra a hibernar
-                                //enableInternet = true; //AGREGADO
-                                //await CheckForInternetConnection(); //AGREGADO
-                                StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                                if (!IsMyServiceRunning(typeof(BackgroundService)))
+                                {
+                                    StartService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                                }
                             }
                             else
                             {
                                 enableInternet = false; //AGREGADO
-                                //await CheckForInternetConnection(); //AGREGADO
                                 cicleactive = false;
                                 offline = false;
                                 ctrlWifi = false;
-                                //////pm = (PowerManager)GetSystemService(Context.PowerService);
-                                //////wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                                //////wake.Acquire(); //el dispositivo sale de hibernar
-                                //////wake.Release();
                                 StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                                await WakeUpdevice();
                                 await ReadFile(); //AGREGADO
                             }
                         }
@@ -219,21 +219,19 @@ namespace monitor_inteligente
                     else //cuando no hay conexion a internet
                     {
                         Thread.Sleep(3000);
-                        wifiinfo = wifi.ConnectionInfo;
-                        level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
-                        if (level < 3)
+                        //wifiinfo = wifi.ConnectionInfo;
+                        //level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
+                        connect = await CheckForInternetConnection();
+                        if (connect == false) //level < 3
                         {
                             enableInternet = false; //AGREGADO
                             //await CheckForInternetConnection(); //AGREGADO
                             cicleactive = false;
                             offline = false;
                             level = 0;
-                            Toast.MakeText(this, "sin conexion por wifi", ToastLength.Long).Show();
-                            //////pm = (PowerManager)GetSystemService(Context.PowerService);
-                            //////wakeLock = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "wakeup device");
-                            //////wakeLock.Acquire();
-                            //////wakeLock.Release();
+                            Toast.MakeText(this, "Inicia reproduccion", ToastLength.Long).Show();
                             StopService(new Intent(this, typeof(BackgroundService))); //AGREGADO
+                            await WakeUpdevice();
                             await ReadFile(); //AGREGADO
                         }
                         //pm = (PowerManager)GetSystemService(Context.PowerService);
@@ -242,6 +240,51 @@ namespace monitor_inteligente
                     }
                 }
             };
+        }
+
+        private bool IsMyServiceRunning(System.Type cls)
+        {
+            ActivityManager manager = (ActivityManager)GetSystemService(Context.ActivityService);
+
+            foreach (var service in manager.GetRunningServices(int.MaxValue))
+            {
+                if (service.Service.ClassName.Equals(Java.Lang.Class.FromType(cls).CanonicalName))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public async Task<bool> CheckForInternetConnection()
+        {
+            try
+            {
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://clients3.google.com/generate_204");
+                request.Timeout = 2000;
+                request.Method = "GET";
+                var res = request.GetResponse();
+                if (res != null)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch(Exception ex)
+            {
+                return false;
+            }
+        }
+
+        async Task WakeUpdevice()
+        {
+            PowerManager pwm = (PowerManager)GetSystemService(Context.PowerService);
+            WakeLock wkl = pwm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
+            wkl.Acquire();
+            wkl.Release();
         }
 
         async Task Download()
@@ -256,12 +299,12 @@ namespace monitor_inteligente
             blockavailables = stat.AvailableBlocks;
             free_size = blocksize * blockavailables; //tamaño libre de memoria en tv Box
 
-            wifiinfo = wifi.ConnectionInfo;
-            level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
-
-            if (level >= 3)
+            //wifiinfo = wifi.ConnectionInfo;
+            //level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
+            connect = await CheckForInternetConnection();
+            if (connect) //level >= 3
             {
-                level = 0;
+                //level = 0;
                 try
                 {
                     //verifica que si la memoria del tvBox esta llena
@@ -364,7 +407,8 @@ namespace monitor_inteligente
                                             {
                                                 if (line[i] == '<')
                                                 {
-                                                    if (CrossConnectivity.Current.IsConnected)
+                                                    connect = await CheckForInternetConnection();
+                                                    if (CrossConnectivity.Current.IsConnected && connect == true)
                                                     {
                                                         isSaving = false;
                                                         var pathserver = "https://flexolumens.co/PantallaInterna/" + nm;
@@ -388,7 +432,7 @@ namespace monitor_inteligente
                                                                 //PROCESO DE DESCARGA DE ARCHIVOS
                                                                 cliente.DownloadFileCompleted += new AsyncCompletedEventHandler(completado);
                                                                 cliente.DownloadProgressChanged += new DownloadProgressChangedEventHandler(cargando);
-                                                                progreso.SetMessage("Descargando " + nm);
+                                                                progreso.SetMessage("Descargando: " + nm);
                                                                 progreso.Show();
                                                                 await cliente.DownloadFileTaskAsync(new System.Uri(pathserver), pathvideo);
                                                                 Thread.Sleep(2000);
@@ -408,7 +452,7 @@ namespace monitor_inteligente
                                                                     //inicia descarga del video en el servidor 
                                                                     cliente.DownloadProgressChanged += new DownloadProgressChangedEventHandler(cargando);
                                                                     cliente.DownloadFileCompleted += new AsyncCompletedEventHandler(completado);
-                                                                    progreso.SetMessage("Descargando " + nm);
+                                                                    progreso.SetMessage("Descargando: " + nm);
                                                                     progreso.Show();
                                                                     await cliente.DownloadFileTaskAsync(new System.Uri(pathserver), pathvideo);
                                                                     Thread.Sleep(2000);
@@ -416,7 +460,8 @@ namespace monitor_inteligente
                                                                 }
                                                                 catch (WebException Ex)
                                                                 {
-                                                                    if (CrossConnectivity.Current.IsConnected) //intenta de nuevo descargar el archivo
+                                                                    connect = await CheckForInternetConnection();
+                                                                    if (CrossConnectivity.Current.IsConnected && connect == true) //intenta de nuevo descargar el archivo
                                                                     {
                                                                         if (nm == "") //si por alguna razon alcanza la reconexion pero nm se borra, retoma de nuevo el valor con aux_name
                                                                         {
@@ -429,7 +474,7 @@ namespace monitor_inteligente
                                                                         }
                                                                         cliente.DownloadProgressChanged += new DownloadProgressChangedEventHandler(cargando);
                                                                         cliente.DownloadFileCompleted += new AsyncCompletedEventHandler(completado);
-                                                                        progreso.SetMessage("Descargando " + nm);
+                                                                        progreso.SetMessage("Descargando: " + nm);
                                                                         progreso.Show();
                                                                         await cliente.DownloadFileTaskAsync(new System.Uri(pathserver), pathvideo);
                                                                         Thread.Sleep(2000);
@@ -485,13 +530,6 @@ namespace monitor_inteligente
                 desconect = 0;
                 ctrlWifi = false;
             }
-
-            var newUiOptions = (int)Window.DecorView.SystemUiVisibility;
-            newUiOptions |= (int)SystemUiFlags.LowProfile;
-            newUiOptions |= (int)SystemUiFlags.Fullscreen;
-            newUiOptions |= (int)SystemUiFlags.HideNavigation;
-            newUiOptions |= (int)SystemUiFlags.ImmersiveSticky;
-            Window.DecorView.SystemUiVisibility = (StatusBarVisibility)newUiOptions;
         }
 
         async Task DownloadParameters()
@@ -538,9 +576,9 @@ namespace monitor_inteligente
 
         private void completado(object sender, AsyncCompletedEventArgs e)
         {
-            bytesIn = 0;
-            percentage = 0;
-            bytesfileserver = 0;
+            //bytesIn = 0;
+            //percentage = 0;
+            //bytesfileserver = 0;
             if (!CrossConnectivity.Current.IsConnected)
             {
                 Toast.MakeText(this, "descarga de archivos interrumpida", ToastLength.Short).Show();
@@ -611,13 +649,6 @@ namespace monitor_inteligente
 
         async Task ReadFile()
         {
-            var newUiOptions = (int)Window.DecorView.SystemUiVisibility;
-            newUiOptions |= (int)SystemUiFlags.LowProfile;
-            newUiOptions |= (int)SystemUiFlags.Fullscreen;
-            newUiOptions |= (int)SystemUiFlags.HideNavigation;
-            newUiOptions |= (int)SystemUiFlags.ImmersiveSticky;
-            Window.DecorView.SystemUiVisibility = (StatusBarVisibility)newUiOptions;
-
             await stayalert();
             FileInfo Fi = new FileInfo(ruta1);
             if (Fi.Length != 0)
@@ -1012,28 +1043,36 @@ namespace monitor_inteligente
             }
             else
             {
-                DirectoryInfo Di = new DirectoryInfo(path_archivos);
-                FileInfo[] Vid = Di.GetFiles("*.mp4");
-                var nameFile = Vid[0].Name;
-                //reproduzca algun video cuando el archivo parametros.txt esta vacio
-                Toast.MakeText(this, "sin videos para reproducir", ToastLength.Long).Show();
-
-                string rut_video = Path.Combine(path_archivos, nameFile);
-                if (!Video_main.IsPlaying)
+                try
                 {
-                    ctrl_lea = 0; //variable que incremen
-                    hour_enabled = true;
-                    VideoPlay(video_main, rut_video);
+                    DirectoryInfo Di = new DirectoryInfo(path_archivos);
+                    FileInfo[] Vid = Di.GetFiles("*.mp4");
+                    var nameFile = Vid[0].Name;
+                    //reproduzca algun video cuando el archivo parametros.txt esta vacio
+                    Toast.MakeText(this, "reproduciendo otros videos", ToastLength.Long).Show();
+
+                    string rut_video = Path.Combine(path_archivos, nameFile);
+                    if (!Video_main.IsPlaying)
+                    {
+                        ctrl_lea = 0; //variable que incremen
+                        hour_enabled = true;
+                        VideoPlay(video_main, rut_video);
+                    }
+                }
+                catch(Exception ex)
+                {
+                    ctrl_lea = 0;
                 }
             }
         }
 
         async Task stayalert()
         {
-            pm = (PowerManager)GetSystemService(Context.PowerService);
+            //pm = (PowerManager)GetSystemService(Context.PowerService);
+            connect = await CheckForInternetConnection();
             try
             {
-                if (CrossConnectivity.Current.IsConnected) //cuando esta conectado a wifi
+                if (CrossConnectivity.Current.IsConnected && connect == true) //cuando esta conectado a wifi
                 {
                     //////intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
                     //////StartActivity(intent);
@@ -1049,9 +1088,10 @@ namespace monitor_inteligente
             }
             catch (Exception Ex)
             {
-                wifiinfo = wifi.ConnectionInfo;
-                level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
-                if (level >= 3)
+                //wifiinfo = wifi.ConnectionInfo;
+                //level = WifiManager.CalculateSignalLevel(wifiinfo.Rssi, 11); //calcula la potencia de la señal wifi
+                connect = await CheckForInternetConnection();
+                if (connect == true) // level >= 3
                 {
                     //////intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
                     //////StartActivity(intent);
@@ -1108,7 +1148,7 @@ namespace monitor_inteligente
             try
             {
                 video_main.SetOnPreparedListener(new VideoLoop());
-                video_main.SetOnCompletionListener(new VideoLoop1(video_main, lista, recorre, intent, this.ApplicationContext));
+                video_main.SetOnCompletionListener(new VideoLoop1(video_main, lista, recorre, intent, this.ApplicationContext, connect));
                 if (!video_main.IsPlaying)
                 {
                     video_main.SetVideoPath(ruta);
@@ -1138,6 +1178,7 @@ namespace monitor_inteligente
             public WakeLock wake;
             public WakeLock wakeLock;
             public Intent inten;
+            public bool connect;
             public Context context;
             public WifiManager wifi;
             public WifiInfo wifiinfo;
@@ -1169,13 +1210,14 @@ namespace monitor_inteligente
             //    lista2.Clear();
             //}
 
-            public VideoLoop1(VideoView videoView, List<string> videos, int counter, Intent intent, Context originContext)
+            public VideoLoop1(VideoView videoView, List<string> videos, int counter, Intent intent, Context originContext, bool conn)
             {
                 localVideoView = videoView; //puente entre videoview de la clase mainactivity y videoloop1
                 lista2 = videos;
                 recorre = counter;
                 inten = intent;
                 context = originContext;
+                connect = conn;
             }
 
             public async void OnCompletion(MediaPlayer mp)
@@ -1207,7 +1249,6 @@ namespace monitor_inteligente
             async Task ReadFile()
             {
                 await stayalert();
-
                 FileInfo Fi = new FileInfo(ruta2);
                 if (Fi.Length != 0)
                 {
@@ -1602,27 +1643,37 @@ namespace monitor_inteligente
                 }
                 else
                 {
-                    DirectoryInfo Di = new DirectoryInfo(path_archivos);
-                    FileInfo[] Vid = Di.GetFiles("*.mp4");
-                    var nameFile = Vid[0].Name;
-                    //reproduzca algun video cuando el archivo parametros.txt esta vacio
-                    Toast.MakeText(context, "sin videos para reproducir", ToastLength.Long).Show();
-                    string rut_video = Path.Combine(path_archivos, nameFile);
-                    if (!localVideoView.IsPlaying)
+                    try
                     {
-                        ctrl_lea = 0; //variable que incremen
-                        hour_enabled = true;
-                        VideoPlay(localVideoView, rut_video);
+
+
+                        DirectoryInfo Di = new DirectoryInfo(path_archivos);
+                        FileInfo[] Vid = Di.GetFiles("*.mp4");
+                        var nameFile = Vid[0].Name;
+                        //reproduzca algun video cuando el archivo parametros.txt esta vacio
+                        Toast.MakeText(context, "reproduciendo otros videos", ToastLength.Long).Show();
+                        string rut_video = Path.Combine(path_archivos, nameFile);
+                        if (!localVideoView.IsPlaying)
+                        {
+                            ctrl_lea = 0; //variable que incremen
+                            hour_enabled = true;
+                            VideoPlay(localVideoView, rut_video);
+                        }
+                    }
+                    catch(Exception Ex)
+                    {
+                        ctrl_lea = 0;
                     }
                 }
             }
 
             async Task stayalert()
             {
-                pm = (PowerManager)context.GetSystemService(PowerService);
+                //pm = (PowerManager)context.GetSystemService(PowerService);
+                connect = await VerifyForInternetConnection();
                 try
                 {
-                    if (CrossConnectivity.Current.IsConnected)
+                    if (connect == true)
                     {
                         //////inten = context.PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
                         //////context.StartActivity(inten);
@@ -1638,7 +1689,8 @@ namespace monitor_inteligente
                 }
                 catch (Exception Ex)
                 {
-                    if (CrossConnectivity.Current.IsConnected)
+                    connect = await VerifyForInternetConnection();
+                    if (connect == true)
                     {
                         //////inten = context.PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
                         //////context.StartActivity(inten);
@@ -1653,6 +1705,29 @@ namespace monitor_inteligente
                         //////wake.Release();
                         context.StopService(new Intent(context, typeof(BackgroundService))); //AGREGADO
                     }
+                }
+            }
+
+            public async Task<bool> VerifyForInternetConnection()
+            {
+                try
+                {
+                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://clients3.google.com/generate_204");
+                    request.Timeout = 2000;
+                    request.Method = "GET";
+                    var resp = request.GetResponse();
+                    if (resp != null)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return false;
                 }
             }
 
@@ -1718,89 +1793,6 @@ namespace monitor_inteligente
             }
         }
 
-        //protected override async void OnDestroy()
-        //{
-        //    base.OnDestroy();
-        //    var connectivityManager = (ConnectivityManager)(Application.Context.GetSystemService(Context.ConnectivityService));
-        //    NetworkInfo networkInfo = connectivityManager.ActiveNetworkInfo;
-        //    if (networkInfo != null && networkInfo.IsConnected)
-        //    {
-
-        //    }
-
-
-        //    var combina = Path.Combine(path_arch, "historial.txt");
-        //    if (!File.Exists(Path.Combine(combina)))
-        //    {
-        //        using (var escribe = new StreamWriter(combina))
-        //        {
-        //            escribe.WriteLine("se destruye");
-        //        }
-        //    }
-        //    else
-        //    {
-        //        using (var escribe = new StreamWriter(combina))
-        //        {
-        //            escribe.WriteLine("se destruye");
-        //        }
-        //    }
-        //}
-
-        //protected override async void OnStop()
-        //{
-        //    base.OnStop();
-        //    try
-        //    {
-        //        var combina = Path.Combine(path_arch, "historial.txt");
-        //        date = DateTime.Today;
-        //        dia = date.Day.ToString();
-        //        mes = date.Month.ToString();
-        //        año = date.Year.ToString();
-        //        fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
-
-        //        time = DateTime.Now.ToLocalTime();
-        //        hora = time.Hour.ToString();
-        //        min = time.Minute.ToString();
-        //        string tiempo = hora + ":" + min;
-        //        if (!File.Exists(Path.Combine(combina)))
-        //        {
-        //            using (var escribe = new StreamWriter(combina))
-        //            {
-        //                escribe.WriteLine("se detuvo");
-        //                escribe.WriteLine(fecha_actual);
-        //                escribe.WriteLine(tiempo);
-        //            }
-        //        }
-        //        else
-        //        {
-        //            using (var escribe = new StreamWriter(combina))
-        //            {
-        //                escribe.WriteLine("se detuvo");
-        //                escribe.WriteLine(fecha_actual);
-        //                escribe.WriteLine(tiempo);
-        //            }
-        //        }
-        //    }
-        //    catch (Exception)
-        //    {
-        //        var combina = Path.Combine(path_arch, "historial.txt");
-        //        if (!File.Exists(Path.Combine(combina)))
-        //        {
-        //            using (var escribe = new StreamWriter(combina))
-        //            {
-        //                escribe.WriteLine("excepcion OnStop");
-        //            }
-        //        }
-        //        else
-        //        {
-        //            using (var escribe = new StreamWriter(combina))
-        //            {
-        //                escribe.WriteLine("excepcion OnStop");
-        //            }
-        //        }
-        //    }
-        //}
-
         protected override async void OnResume()
         {
             base.OnResume();
@@ -1818,9 +1810,9 @@ namespace monitor_inteligente
                     Application.Context.StartActivity(intento);
                 }
             }
-            catch(Exception)
+            catch (Exception)
             {
-                
+
             }
         }
     }

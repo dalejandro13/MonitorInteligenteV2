@@ -27,6 +27,7 @@ using Hoho.Android.UsbSerial.Driver;
 using System.Threading.Tasks;
 using Android.Widget;
 using Android.Content;
+using Android.App;
 
 namespace Hoho.Android.UsbSerial.Util
 {
@@ -41,15 +42,18 @@ namespace Hoho.Android.UsbSerial.Util
 		const StopBits DEFAULT_STOPBITS = StopBits.One;
         public Context context;
 		readonly IUsbSerialPort port;
-		object syncState = new object();
+		//object syncState = new object();
 		byte[] buffer;
 		CancellationTokenSource cancelationTokenSource;
 		bool isOpen;
-
-        public string mensaje { get; set; }
-        byte[] datos;
-        public int len2 { get; set; }
-
+        byte[] datos; //linea agregada
+        
+        ////////////////////Metodo agregado/////////////////////
+        public void SendingMessage(string message)
+        {
+            sending(message);
+        }
+        ////////////////////////////////////////////////////////
 
         public SerialInputOutputManager (IUsbSerialPort port)
 		{
@@ -60,7 +64,9 @@ namespace Hoho.Android.UsbSerial.Util
 			StopBits = DEFAULT_STOPBITS;
 		}
 
-		public int BaudRate { get; set; }
+        public int len2 { get; set; } //linea agregada
+
+        public int BaudRate { get; set; }
 
 		public Parity Parity { get; set; }
 
@@ -97,9 +103,7 @@ namespace Hoho.Android.UsbSerial.Util
 				try {
 					while(true)
 					{
-                        Thread.Sleep(1000); //sleep new line
 						cancelationToken.ThrowIfCancellationRequested();
-                        sending(); //sending data new line
 						Step(); // execute step
 					}
 				}
@@ -126,7 +130,7 @@ namespace Hoho.Android.UsbSerial.Util
 				throw new InvalidOperationException();
 
 			// cancel task
-			cancelationTokenSource.Cancel ();
+			cancelationTokenSource.Cancel();
 		}
 
 		public bool IsOpen { 
@@ -135,26 +139,34 @@ namespace Hoho.Android.UsbSerial.Util
 			}
 		}
 
-        /////////////////////new code///////////////////////////
-        private void sending()
+        /////////////////////////////////////new method////////////////////////////////////
+        private void sending(string message)
         {
-            mensaje = "hola como estas";
-            datos = System.Text.Encoding.UTF8.GetBytes(mensaje);
-            len2 = port.Write(datos, READ_WAIT_MILLIS);
+            //message = "hola como estas";
+            datos = System.Text.Encoding.UTF8.GetBytes(message);
+            len2 = port.Write(datos, READ_WAIT_MILLIS); //write message for serial communication
         }
-        /////////////////////////////////////////////////////////
+        ///////////////////////////////////////////////////////////////////////////////////
 
         void Step()
         {
-            // handle incoming data.
-            var len = port.Read(buffer, READ_WAIT_MILLIS);
-			if (len > 0) {
-				Log.Debug(TAG, "Read data len=" + len);
+            try
+            {
+                // handle incoming data.
+                var len = port.Read(buffer, READ_WAIT_MILLIS);
+                if (len > 0)
+                {
+                    Log.Debug(TAG, "Read data len=" + len);
 
-				var data = new byte[len];
-				Array.Copy(buffer, data, len);
-				DataReceived.Raise(this, new SerialDataReceivedArgs (data));
-			}
+                    var data = new byte[len];
+                    Array.Copy(buffer, data, len);
+                    DataReceived.Raise(this, new SerialDataReceivedArgs(data));
+                }
+            }
+            catch (Exception ex)
+            {
+                Toast.MakeText(Application.Context, ex.Message, ToastLength.Long).Show();
+            }
 		}
 
 		#region Dispose pattern implementation

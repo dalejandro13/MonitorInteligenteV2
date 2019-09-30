@@ -32,11 +32,10 @@ namespace monitor_inteligente
         public Intent intent;
         PowerManager pm;
         WakeLock wake;
-        //Singleton sgl;
-        //System.Timers.Timer Tbusy;
         DateTime time, date;
-        string dia, mes, año, fecha_actual, hora, min;
+        string dia, mes, año, fecha_actual, hora, min, tiempo;
         bool enableMethod = true;
+        Context context;
 
         public override IBinder OnBind(Intent intent)
         {
@@ -50,12 +49,23 @@ namespace monitor_inteligente
             CountErase = 0;
             combina = Path.Combine(path_archivos, "historial.txt"); //agregado
             pm = (PowerManager)GetSystemService(Context.PowerService);
-            wake = pm.NewWakeLock(WakeLockFlags.OnAfterRelease | WakeLockFlags.Partial, "stay awake gently");
-            //obj = new Singleton();  //se declara clase Singleton
-            //Initializetimer();
+            wake = pm.NewWakeLock(WakeLockFlags.Partial, "stay awake gently");
+            Task.Run(async () => await MakeFolderAndFile());
             Task.Run(async () => await ActivateLock());
-            Task.Run(async () => await MethodRecursive());
+            Task.Run(async () => await RecursiveMethod());
             return StartCommandResult.Sticky;
+        }
+
+        async Task MakeFolderAndFile()
+        {
+            if (!Directory.Exists(path_archivos))
+            {
+                Directory.CreateDirectory(path_archivos);
+            }
+            if (!File.Exists(combina))
+            {
+                File.Create(combina);
+            }
         }
 
         async Task ActivateLock()
@@ -63,241 +73,93 @@ namespace monitor_inteligente
             wake.Acquire();
             intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
             StartActivity(intent);
-            await Task.Delay(3000);
+            //await Task.Delay(3000);
         }
 
-        async Task MethodRecursive()
+        async Task RecursiveMethod()
         {
             try
             {
                 var connectivityManager = (ConnectivityManager)Application.Context.GetSystemService(Context.ConnectivityService);
                 NetworkInfo networkInfo = connectivityManager.ActiveNetworkInfo;
-                if (networkInfo != null && networkInfo.IsConnected)
-                {
-                    date = DateTime.Today;
-                    dia = date.Day.ToString();
-                    mes = date.Month.ToString();
-                    año = date.Year.ToString();
-                    fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
-                    time = DateTime.Now.ToLocalTime();
-                    hora = time.Hour.ToString();
-                    min = time.Minute.ToString();
-                    string tiempo = hora + ":" + min;
-                    CountErase++;
-                    if (CountErase >= 60)
-                    {
-                        File.WriteAllText(combina, string.Empty);
-                        CountErase = 0;
-                    }
-                    if (!File.Exists(combina))
-                    {
-                        using (StreamWriter file = new StreamWriter(combina))
-                        {
-                            file.WriteLine("se ejecuta en CheckForInternetConnection");
-                            file.WriteLine("fecha: " + fecha_actual);
-                            file.WriteLine("hora: " + tiempo);
-                        }
-                    }
-                    else
-                    {
-                        using (StreamWriter file = new StreamWriter(combina))
-                        {
-                            file.WriteLine("se ejecuta en CheckForInternetConnection");
-                            file.WriteLine("fecha: " + fecha_actual);
-                            file.WriteLine("hora: " + tiempo);
-                        }
-                    }
+                var connect = await CheckForInternetConnection();
 
-                    //pm = (PowerManager)GetSystemService(Context.PowerService);
-                    //wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
-                    //wake.Acquire();
-                    //wake.Release();
-                    intent = PackageManager.GetLaunchIntentForPackage("com.flexolumens.monitor"); //va a codigo de envio serial
-                    StartActivity(intent);
+                ////date = DateTime.Now;
+                ////fecha_actual = date.ToString("dd/MM/yyyy"); //obtengo la fecha actual
+                ////tiempo = date.ToString("HH:mm tt");//hora + ":" + min;
+                ////CountErase++;
+                ////if (CountErase >= 60)
+                ////{
+                ////    if (File.Exists(combina))
+                ////    {
+                ////        File.WriteAllText(combina, string.Empty);
+                ////        CountErase = 0;
+                ////    }
+                ////}
+
+                ////if (File.Exists(combina))
+                ////{
+                ////    using (StreamWriter file = new StreamWriter(combina))
+                ////    {
+                ////        file.WriteLine("se ejecuta en CheckForInternetConnection");
+                ////        file.WriteLine("fecha: " + fecha_actual);
+                ////        file.WriteLine("hora: " + tiempo);
+                ////    }
+                ////}
                     
+                //intent = PackageManager.GetLaunchIntentForPackage("com.flexolumens.serial"); //va al programa para ejecutar serial
+                //StartActivity(intent);
+                //StopSelf();
+
+                await Task.Delay(7000);
+                if (networkInfo != null && networkInfo.IsConnected && connect == true)
+                {
+                    await RecursiveMethod();
                 }
                 else
                 {
-                    enableMethod = false;
+                    wake.Release();
+                    StopSelf();
+
+                    //PowerManager pwm = (PowerManager)GetSystemService(Context.PowerService);
+                    //WakeLock wkl = pwm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
+                    //wkl.Acquire();
+                    //wkl.Release();
+
+                    //intent = PackageManager.GetLaunchIntentForPackage("com.flexolumens.MonitorInteligente");
+                    intent = new Intent(Application.Context, typeof(MainActivity));
+                    intent.SetFlags(intent.Flags | ActivityFlags.NoHistory | ActivityFlags.NewTask);
+                    intent.SetAction(Intent.ActionMain);
+                    intent.AddCategory(Intent.CategoryLauncher);
+                    Application.Context.StartActivity(intent);
                 }
             }
             catch (Exception ex)
             {
-
+                Toast.MakeText(this, ex.Message, ToastLength.Long).Show();
             }
-            //if (enableMethod == true)
-            //{
-            //    await Task.Delay(1000 * 60 * 4);
-            //    await MethodRecursive();
-            //}
         }
-
-        //async Task Initializetimer()
-        //{
-            
-        //    if (Tbusy.Enabled == false)
-        //    {
-        //        Tbusy.Interval = 1000 * 60 * 4;
-        //        Tbusy.Elapsed += new System.Timers.ElapsedEventHandler(CheckForInternetConnection);
-        //        Tbusy.Start();
-        //    }
-        //}
-
-        //private void CheckForInternetConnection(object sender, ElapsedEventArgs e)
-        //{
-        //    try
-        //    {
-        //        var connectivityManager = (ConnectivityManager)(Application.Context.GetSystemService(Context.ConnectivityService));
-        //        NetworkInfo networkInfo = connectivityManager.ActiveNetworkInfo;
-        //        if (networkInfo != null && networkInfo.IsConnected)
-        //        {
-        //            date = DateTime.Today;
-        //            dia = date.Day.ToString();
-        //            mes = date.Month.ToString();
-        //            año = date.Year.ToString();
-        //            fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
-        //            time = DateTime.Now.ToLocalTime();
-        //            hora = time.Hour.ToString();
-        //            min = time.Minute.ToString();
-        //            string tiempo = hora + ":" + min;
-        //            if (!File.Exists(combina))
-        //            {
-        //                using (StreamWriter file = new StreamWriter(combina))
-        //                {
-        //                    file.WriteLine("se ejecuta en CheckForInternetConnection");
-        //                    file.WriteLine("fecha: " + fecha_actual);
-        //                    file.WriteLine("hora: " + tiempo);
-        //                }
-        //            }
-        //            else
-        //            {                    
-        //                using (StreamWriter file = new StreamWriter(combina))
-        //                {
-        //                    file.WriteLine("se ejecuta en CheckForInternetConnection");
-        //                    file.WriteLine("fecha: " + fecha_actual);
-        //                    file.WriteLine("hora: " + tiempo);
-        //                }
-        //            }
-        //            //var sgl = Singleton.Instance;
-        //            //sgl.OnOff = true;
-        //            //pm = (PowerManager)GetSystemService(Context.PowerService);
-        //            //wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
-        //            //wake.Acquire();
-        //            //wake.Release();
-        //            //intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-        //            //StartActivity(intent);
-        //        }
-        //        else
-        //        {
-        //            Tbusy.Dispose();
-        //            Tbusy.Stop();
-        //        }
-        //    }
-        //    catch(Exception ex)
-        //    {
-
-        //    }
-        //}
-
-        //private void CheckForInternetConnection()
-        //{
-        //    try
-        //    {
-        //        if (enableInternet == true)
-        //        {
-        //            pm = (PowerManager)GetSystemService(Context.PowerService);
-        //            wake = pm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
-        //            wake.Acquire();
-        //            wake.Release();
-        //            intent = PackageManager.GetLaunchIntentForPackage("com.ssaurel.lockdevice");
-        //            StartActivity(intent);
-        //        }
-        //    }
-        //    catch
-        //    {
-        //        enableInternet = false;
-        //    }
-
-        //    if (enableInternet == true)
-        //    {
-        //        for (int i = 0; i <= 1560; i++)
-        //        {
-        //            //await Task.Delay(30);
-        //            Thread.Sleep(30);
-        //        }
-        //        CheckForInternetConnection();
-        //    }
-        //}
-
-        //public override bool StopService(Intent name)
-        //{
-        //    date = DateTime.Today;
-        //    dia = date.Day.ToString();
-        //    mes = date.Month.ToString();
-        //    año = date.Year.ToString();
-        //    fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
-        //    time = DateTime.Now.ToLocalTime();
-        //    hora = time.Hour.ToString();
-        //    min = time.Minute.ToString();
-        //    string tiempo = hora + ":" + min;
-        //    if (!File.Exists(combina))
-        //    {
-        //        using (StreamWriter file = new StreamWriter(combina, true))
-        //        {
-        //            file.WriteLine("se ejecuta en Stopservice");
-        //            file.WriteLine("fecha: " + fecha_actual);
-        //            file.WriteLine("hora: " + tiempo);
-        //        }
-        //    }
-        //    else
-        //    {
-        //        using (StreamWriter file = new StreamWriter(combina, true))
-        //        {
-        //            file.WriteLine("se ejecuta en Stopservice");
-        //            file.WriteLine("fecha: " + fecha_actual);
-        //            file.WriteLine("hora: " + tiempo);
-        //        }
-        //    }
-
-        //    //Tbusy.Dispose();
-        //    //Tbusy.Stop();
-        //    enableMethod = false;
-        //    wake.Release();
-        //    return base.StopService(name);
-        //}
 
         public override void OnDestroy()
         {
             base.OnDestroy();
 
-            date = DateTime.Today;
-            dia = date.Day.ToString();
-            mes = date.Month.ToString();
-            año = date.Year.ToString();
-            fecha_actual = dia + "/" + mes + "/" + año; //obtengo la fecha actual
-            time = DateTime.Now.ToLocalTime();
-            hora = time.Hour.ToString();
-            min = time.Minute.ToString();
-            string tiempo = hora + ":" + min;
+            date = DateTime.Now;
+            fecha_actual = date.ToString("dd/MM/yyyy"); //obtengo la fecha actual
+            tiempo = date.ToString("HH:mm tt");//hora + ":" + min;
             CountErase++;
             if (CountErase >= 60)
             {
-                File.WriteAllText(combina, string.Empty);
-                CountErase = 0;
-            }
-
-            if (!File.Exists(combina))
-            {
-                using (StreamWriter file = new StreamWriter(combina, true))
+                if (File.Exists(combina))
                 {
-                    file.WriteLine("se ejecuta en OnDestroy");
-                    file.WriteLine("fecha: " + fecha_actual);
-                    file.WriteLine("hora: " + tiempo);
+                    File.WriteAllText(combina, string.Empty);
+                    CountErase = 0;
                 }
             }
-            else
+
+            if (File.Exists(combina))
             {
-                using (StreamWriter file = new StreamWriter(combina, true))
+                using (StreamWriter file = new StreamWriter(combina))
                 {
                     file.WriteLine("se ejecuta en OnDestroy");
                     file.WriteLine("fecha: " + fecha_actual);
@@ -306,27 +168,30 @@ namespace monitor_inteligente
             }
 
             enableMethod = false;
-            wake.Release();
-            PowerManager pwm = (PowerManager)GetSystemService(Context.PowerService);
-            WakeLock wkl = pwm.NewWakeLock(WakeLockFlags.Full | WakeLockFlags.AcquireCausesWakeup | WakeLockFlags.OnAfterRelease, "wakeup device");
-            wkl.Acquire();
-            wkl.Release();
+            StopSelf();
+        }
 
-            //Tbusy.Dispose();
-            //    bool isInBackground;
-            //    RunningAppProcessInfo myProcess = new RunningAppProcessInfo();
-            //    GetMyMemoryState(myProcess);
-            //    isInBackground = myProcess.Importance != Importance.Foreground;
-            //    if (isInBackground)
-            //    {
-            //        var intento = new Intent(Application.Context, typeof(MainActivity));
-            //        intento.AddCategory(Intent.CategoryLauncher);
-            //        intento.AddFlags(ActivityFlags.NewTask);
-            //        Application.Context.StartActivity(intento);
-            //    }
-
-            //    //wifiLock.Release();
-            //    //wake.Release();
+        public async Task<bool> CheckForInternetConnection()
+        {
+            try
+            {
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create("http://clients3.google.com/generate_204");
+                request.Timeout = 2000;
+                request.Method = "GET";
+                var resp = request.GetResponse();
+                if (resp != null)
+                {
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
         }
     }
 }
